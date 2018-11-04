@@ -57,7 +57,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     private final SelectableChannel ch;
     protected final int readInterestOp;
     volatile SelectionKey selectionKey;
-    boolean readPending;
+    boolean  readPending;
     private final Runnable clearReadPendingRunnable = new Runnable() {
         @Override
         public void run() {
@@ -81,11 +81,15 @@ public abstract class AbstractNioChannel extends AbstractChannel {
      * @param readInterestOp    the ops to set to receive data from the {@link SelectableChannel}
      */
     protected AbstractNioChannel(Channel parent, SelectableChannel ch, int readInterestOp) {
-        super(parent);
-        this.ch = ch;
+        super(parent);      // 调用父类的 AbstractChannel 构造方法
+        this.ch = ch;     //  ch 属性，Netty NIO Channel 对象，持有的 Java 原生 NIO 的 Channel 对象。
+        /**
+         *  readInterestOp 属性，感兴趣的读事件的操作位值,
+         *  AbstractNioMessageChannel 是 SelectionKey.OP_ACCEPT ， 而 AbstractNioByteChannel 是 SelectionKey.OP_READ 。
+         */
         this.readInterestOp = readInterestOp;
         try {
-            ch.configureBlocking(false);
+            ch.configureBlocking(false);        // 设置 NIO Channel 为非阻塞
         } catch (IOException e) {
             try {
                 ch.close();
@@ -383,6 +387,12 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         boolean selected = false;
         for (;;) {
             try {
+                /**
+                 *  eventLoop().unwrappedSelector() 获取  Java 原生 NIO Selector 对象 --> 每个 NioEventLoop 对象上，都独有一个 Selector 对象。
+                 *  javaChannel() 返回的是 NioServerSocketChannel 中的 java 原生的 ServerSocketChannel
+                 *  register 注册逻辑和 java 的 nio 一样
+                 *  第 2 个参数 ops 为 0 ，可以达到取消注册的效果
+                 */
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {
@@ -416,7 +426,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         readPending = true;
 
         final int interestOps = selectionKey.interestOps();
-        if ((interestOps & readInterestOp) == 0) {
+        if ((interestOps & readInterestOp) == 0) {  // 将我们创建 NioServerSocketChannel 时设置的 readInterestOp = SelectionKey.OP_ACCEPT 添加为感兴趣的事件
             selectionKey.interestOps(interestOps | readInterestOp);
         }
     }

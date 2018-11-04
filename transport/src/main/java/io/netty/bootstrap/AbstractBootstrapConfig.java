@@ -31,6 +31,10 @@ import java.util.Map;
  */
 public abstract class AbstractBootstrapConfig<B extends AbstractBootstrap<B, C>, C extends Channel> {
 
+    /**
+     * bootstrap 属性，对应的启动类对象
+     * 每个 Config 类，对应一个 Bootstrap 类     ServerBootstrapConfig 和 BootstrapConfig
+     */
     protected final B bootstrap;
 
     protected AbstractBootstrapConfig(B bootstrap) {
