@@ -82,7 +82,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
      * Create a new instance using the given {@link SelectorProvider}.
      */
     public NioSocketChannel(SelectorProvider provider) {
-        this(newSocket(provider));
+        this(newSocket(provider));  // 包装 java NIO 的 SocketChannel
     }
 
     /**
@@ -301,19 +301,25 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
 
     @Override
     protected boolean doConnect(SocketAddress remoteAddress, SocketAddress localAddress) throws Exception {
+        // 绑定本地地址
         if (localAddress != null) {
             doBind0(localAddress);
         }
 
-        boolean success = false;
+        boolean success = false;    // 执行是否成功
         try {
+            // 连接远程地址
             boolean connected = SocketUtils.connect(javaChannel(), remoteAddress);
             if (!connected) {
+                // 若未连接完成，则关注连接( OP_CONNECT )事件。
                 selectionKey().interestOps(SelectionKey.OP_CONNECT);
             }
+            // 标记执行是否成功
             success = true;
+            // 返回是否连接完成
             return connected;
         } finally {
+            // 执行失败，则关闭 Channel
             if (!success) {
                 doClose();
             }
@@ -322,7 +328,8 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
 
     @Override
     protected void doFinishConnect() throws Exception {
-        if (!javaChannel().finishConnect()) {
+        // 确认通道连接已建立，方便后续IO操作（读写）不会因连接没建立而导致异常
+        if (!javaChannel().finishConnect()) {    // SocketChannel#finishConnect()
             throw new Error();
         }
     }

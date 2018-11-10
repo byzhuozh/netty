@@ -15,7 +15,6 @@ import java.util.List;
  */
 public class NioServer {
 
-
     private ServerSocketChannel serverSocketChannel;
     private Selector selector;
 

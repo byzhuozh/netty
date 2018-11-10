@@ -54,7 +54,7 @@ public interface ChannelFutureListener extends GenericFutureListener<ChannelFutu
         public void operationComplete(ChannelFuture future) {
             System.out.println("监听>>>失败关闭 >>> { "  + future.toString() + " }");
             if (!future.isSuccess()) {
-                future.channel().close();
+                future.channel().close(); //
             }
         }
     };

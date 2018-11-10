@@ -539,13 +539,13 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
                 // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
                 // user may already fire events through the pipeline in the ChannelFutureListener.
-                // 触发 ChannelInitializer 执行，进行 Handler 初始化
+                // 触发 ChannelInitializer#initChannel 执行，进行 Handler 初始化
                 pipeline.invokeHandlerAddedIfNeeded();
 
                 // 回调通知 `promise` 执行成功 --》 触发绑定端口的监听
                 safeSetSuccess(promise);
 
-                // 触发通知已注册事件
+                // 触发通知已注册事件, handler 的 channelRegistered 方法
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.

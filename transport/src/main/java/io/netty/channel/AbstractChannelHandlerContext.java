@@ -542,6 +542,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
     private void invokeConnect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) {
         if (invokeHandler()) {
             try {
+                // io.netty.channel.DefaultChannelPipeline.HeadContext.connect()
                 ((ChannelOutboundHandler) handler()).connect(this, remoteAddress, localAddress, promise);
             } catch (Throwable t) {
                 notifyOutboundHandlerException(t, promise);
