@@ -1,6 +1,6 @@
 # Netty Project
 
-Netty is an asynchronous event-driven network application framework for rapid development of maintainable high performance protocol servers & clients.
+Netty是一个异步事件驱动的网络应用程序框架，用于快速开发可维护的高性能协议服务器和客户端。
 
 ## Links
 
@@ -27,9 +27,7 @@ Development of all versions takes place in each branch whose name is identical t
 
 ## Usage with JDK 9
 
-Netty can be used in modular JDK9 applications as a collection of automatic modules. The module names follow the
-reverse-DNS style, and are derived from subproject names rather than root packages due to historical reasons. They
-are listed below:
+Netty可以作为自动化模块的集合使用在模块化的JDK9应用程序中。模块名称遵循反向dns风格，由于历史原因，这些模块名称源自子项目名称，而不是根包。如下所列:
 
  * `io.netty.all`
  * `io.netty.buffer`
