@@ -90,7 +90,7 @@ public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
     @Override
     public <T> List<java.util.concurrent.Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
             throws InterruptedException {
-        return next().invokeAll(tasks);
+        return next().invokeAll(tasks);  // 在 EventExecutor 中执行多个普通任务
     }
 
     @Override
@@ -101,7 +101,7 @@ public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
 
     @Override
     public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
-        return next().invokeAny(tasks);
+        return next().invokeAny(tasks);     // 在 EventExecutor 中执行多个普通任务，有一个执行完成即可
     }
 
     @Override

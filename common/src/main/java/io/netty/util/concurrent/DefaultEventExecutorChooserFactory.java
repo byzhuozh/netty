@@ -32,7 +32,7 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
     @SuppressWarnings("unchecked")
     @Override
     public EventExecutorChooser newChooser(EventExecutor[] executors) {
-        if (isPowerOfTwo(executors.length)) {
+        if (isPowerOfTwo(executors.length)) {   // 是否为 2 的幂次方
             return new PowerOfTwoEventExecutorChooser(executors);
         } else {
             return new GenericEventExecutorChooser(executors);
@@ -51,8 +51,15 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
             this.executors = executors;
         }
 
+        /**
+         * 对应着 io.netty.util.concurrent.EventExecutorGroup.next() 的最终实现
+         * @return
+         */
         @Override
         public EventExecutor next() {
+            // EventExecutor 数组的大小是以 2 为幂次方的数字，那么减一后，除了最高位是 0 ，
+            // 剩余位都为 1 ( 例如 8 减一后等于 7 ，而 7 的二进制为 0111 。)，
+            // 那么无论 idx 无论如何递增，再进行 & 并操作，都不会超过 EventExecutor 数组的大小。并且，还能保证顺序递增。
             return executors[idx.getAndIncrement() & executors.length - 1];
         }
     }
@@ -65,8 +72,13 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
             this.executors = executors;
         }
 
+        /**
+         * 对应着 io.netty.util.concurrent.EventExecutorGroup.next() 的最终实现
+         * @return
+         */
         @Override
         public EventExecutor next() {
+            // 如果 executors 的数组大小不是 2 的幂次，则进行取余运算，获取对应的 eventExecutor 事件执行器
             return executors[Math.abs(idx.getAndIncrement() % executors.length)];
         }
     }

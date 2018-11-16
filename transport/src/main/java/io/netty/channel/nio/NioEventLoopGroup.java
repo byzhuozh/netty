@@ -94,6 +94,14 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
                 RejectedExecutionHandlers.reject());
     }
 
+    /**
+     * @param nThreads
+     * @param executor
+     * @param chooserFactory
+     * @param selectorProvider      java.nio.channels.spi.SelectorProvider ，用于创建 Java NIO Selector 对象。
+     * @param selectStrategyFactory     io.netty.channel.SelectStrategyFactory ，选择策略工厂
+     * @param rejectedExecutionHandler  io.netty.channel.SelectStrategyFactory ，拒绝执行处理器
+     */
     public NioEventLoopGroup(int nThreads, Executor executor, EventExecutorChooserFactory chooserFactory,
                              final SelectorProvider selectorProvider,
                              final SelectStrategyFactory selectStrategyFactory,
@@ -104,6 +112,8 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
     /**
      * Sets the percentage of the desired amount of time spent for I/O in the child event loops.  The default value is
      * {@code 50}, which means the event loop will try to spend the same amount of time for I/O as for non-I/O tasks.
+     *
+     * 设置所有 EventLoop 的 IO 任务占用执行时间的比例
      */
     public void setIoRatio(int ioRatio) {
         for (EventExecutor e: this) {
@@ -114,6 +124,9 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
     /**
      * Replaces the current {@link Selector}s of the child event loops with newly created {@link Selector}s to work
      * around the  infamous epoll 100% CPU bug.
+     *
+     * 重建所有 EventLoop 的 Selector 对象
+     *  JDK 有 epoll 100% CPU Bug 。实际上，NioEventLoop 当触发该 Bug 时，也会自动调用 NioEventLoop#rebuildSelector() 方法，进行重建 Selector 对象，以修复该问题。
      */
     public void rebuildSelectors() {
         for (EventExecutor e: this) {
