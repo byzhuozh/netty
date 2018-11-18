@@ -319,11 +319,15 @@ public final class PlatformDependent {
 
     /**
      * Raises an exception bypassing compiler checks for checked exceptions.
+     *
+     * 提出了一个异常绕过编译器检查已检查的异常
      */
     public static void throwException(Throwable t) {
         if (hasUnsafe()) {
             PlatformDependent0.throwException(t);
         } else {
+            //显式指定异常为RuntimeException，欺骗编译器通过编译；
+            //编译后会擦拭掉泛型信息，变成具体的受检查异常；
             PlatformDependent.<RuntimeException>throwException0(t);
         }
     }

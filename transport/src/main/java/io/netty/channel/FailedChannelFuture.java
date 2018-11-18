@@ -22,6 +22,8 @@ import io.netty.util.internal.PlatformDependent;
  * The {@link CompleteChannelFuture} which is failed already.  It is
  * recommended to use {@link Channel#newFailedFuture(Throwable)}
  * instead of calling the constructor of this future.
+ *
+ * 注意和 SuccessChannelFuture 的区别
  */
 final class FailedChannelFuture extends CompleteChannelFuture {
 
@@ -35,10 +37,10 @@ final class FailedChannelFuture extends CompleteChannelFuture {
      */
     FailedChannelFuture(Channel channel, EventExecutor executor, Throwable cause) {
         super(channel, executor);
-        if (cause == null) {
+        if (cause == null) {            // 异常信息不能为空
             throw new NullPointerException("cause");
         }
-        this.cause = cause;
+        this.cause = cause;   // 异常信息
     }
 
     @Override
@@ -46,6 +48,10 @@ final class FailedChannelFuture extends CompleteChannelFuture {
         return cause;
     }
 
+    /**
+     * 失败的 Future, 返回 false
+     * @return
+     */
     @Override
     public boolean isSuccess() {
         return false;
@@ -53,13 +59,13 @@ final class FailedChannelFuture extends CompleteChannelFuture {
 
     @Override
     public ChannelFuture sync() {
-        PlatformDependent.throwException(cause);
+        PlatformDependent.throwException(cause); // 抛出异常
         return this;
     }
 
     @Override
     public ChannelFuture syncUninterruptibly() {
-        PlatformDependent.throwException(cause);
+        PlatformDependent.throwException(cause);    // 抛出异常
         return this;
     }
 }

@@ -167,6 +167,8 @@ public interface ChannelFuture extends Future<Void> {
     /**
      * Returns a channel where the I/O operation associated with this
      * future takes place.
+     *
+     * 返回与此future相关联的I/O操作发生的 channel
      */
     Channel channel();
 
@@ -207,6 +209,8 @@ public interface ChannelFuture extends Future<Void> {
      *     <li>{@link #sync()}</li>
      *     <li>{@link #syncUninterruptibly()}</li>
      * </ul>
+     *
+     * 如果当前 Future<V> 的泛型设置是 void, 是一个没有值的 future，则返回 true 且不允许调用以阻塞、同步等方法
      */
     boolean isVoid();
 }

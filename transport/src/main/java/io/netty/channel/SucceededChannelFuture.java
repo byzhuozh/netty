@@ -21,6 +21,8 @@ import io.netty.util.concurrent.EventExecutor;
  * The {@link CompleteChannelFuture} which is succeeded already.  It is
  * recommended to use {@link Channel#newSucceededFuture()} instead of
  * calling the constructor of this future.
+ *
+ * Future 是执行成功的
  */
 final class SucceededChannelFuture extends CompleteChannelFuture {
 
@@ -33,6 +35,10 @@ final class SucceededChannelFuture extends CompleteChannelFuture {
         super(channel, executor);
     }
 
+    /**
+     * Future 是成功的，异常直接为 null
+     * @return
+     */
     @Override
     public Throwable cause() {
         return null;

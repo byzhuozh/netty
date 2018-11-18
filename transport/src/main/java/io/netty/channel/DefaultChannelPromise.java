@@ -55,7 +55,7 @@ public class DefaultChannelPromise extends DefaultPromise<Void> implements Chann
 
     @Override
     protected EventExecutor executor() {
-        EventExecutor e = super.executor();
+        EventExecutor e = super.executor();   // 父类的 EventExecutor 有可能是空的， DefaultPromise 有个空的构造器
         if (e == null) {
             return channel().eventLoop();
         } else {

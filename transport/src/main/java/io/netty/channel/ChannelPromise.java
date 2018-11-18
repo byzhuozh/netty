@@ -27,6 +27,12 @@ public interface ChannelPromise extends ChannelFuture, Promise<Void> {
     @Override
     Channel channel();
 
+    /**
+     * 父类方法： {@link Promise#setSuccess(java.lang.Object)}
+     * 重写父类方法返回的返回值类型 ChannelPromise
+     * @param result
+     * @return
+     */
     @Override
     ChannelPromise setSuccess(Void result);
 

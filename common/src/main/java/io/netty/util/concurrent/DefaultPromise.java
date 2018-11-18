@@ -44,13 +44,23 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
     private static final CauseHolder CANCELLATION_CAUSE_HOLDER = new CauseHolder(ThrowableUtil.unknownStackTrace(
             new CancellationException(), DefaultPromise.class, "cancel(...)"));
 
-    private volatile Object result;
-    private final EventExecutor executor;
+    /**
+     * result 的状态取值：
+     *      null - 未完成
+     *      CANCELLATION_CAUSE_HOLDER -被取消
+     *      UNCANCELLABLE - 不可取消
+     *      业务处理调用setSuccess时传入的结果
+     *      业务处理调用setFailure时包装Throws的CauseHolder
+     */
+    private volatile Object result;     // 结果值
+    private final EventExecutor executor;   // 事件执行器
     /**
      * One or more listeners. Can be a {@link GenericFutureListener} or a {@link DefaultFutureListeners}.
      * If {@code null}, it means either 1) no listeners were added yet or 2) all listeners were notified.
      *
      * Threading - synchronized(this). We must support adding listeners when there is no EventExecutor.
+     *
+     *  监听器对象，可能是一个或多个监听器
      */
     private Object listeners;
     /**
@@ -61,6 +71,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
     /**
      * Threading - synchronized(this). We must prevent concurrent notification and FIFO listener notification if the
      * executor changes.
+     * 预防并发操作，标记当前的监听事件是否已经在执行了
      */
     private boolean notifyingListeners;
 
@@ -88,10 +99,16 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         executor = null;
     }
 
+    /**
+     * 设置成功的返回结果
+     *
+     * @param result
+     * @return
+     */
     @Override
     public Promise<V> setSuccess(V result) {
-        if (setSuccess0(result)) {
-            notifyListeners();
+        if (setSuccess0(result)) {  // 修改 result 的值， 通过CAS 无锁修改
+            notifyListeners();      // 若有等待线程则唤醒，通知监听事件。
             return this;
         }
         throw new IllegalStateException("complete already: " + this);
@@ -144,12 +161,21 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return result == null;
     }
 
+    /**
+     * 返回Future任务的异常
+     * @return
+     */
     @Override
     public Throwable cause() {
         Object result = this.result;
         return (result instanceof CauseHolder) ? ((CauseHolder) result).cause : null;
     }
 
+    /**
+     * 添加监听任务
+     * @param listener
+     * @return
+     */
     @Override
     public Promise<V> addListener(GenericFutureListener<? extends Future<? super V>> listener) {
         checkNotNull(listener, "listener");
@@ -158,8 +184,8 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
             addListener0(listener);
         }
 
-        if (isDone()) {
-            notifyListeners();
+        if (isDone()) {  // 判断当前任务是否已经执行完毕
+            notifyListeners();   // 直接触发刚刚加入的监听事件
         }
 
         return this;
@@ -185,6 +211,11 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return this;
     }
 
+    /**
+     * 移除监听的任务
+     * @param listener
+     * @return
+     */
     @Override
     public Promise<V> removeListener(final GenericFutureListener<? extends Future<? super V>> listener) {
         checkNotNull(listener, "listener");
@@ -212,31 +243,44 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return this;
     }
 
+    /**
+     * 等待Future任务结束
+     * @return
+     * @throws InterruptedException
+     */
     @Override
     public Promise<V> await() throws InterruptedException {
+        // 判断Future任务是否结束，内部根据result是否为null判断，setSuccess或setFailure时会通过CAS修改result
         if (isDone()) {
             return this;
         }
 
+        // 线程是否被中断
         if (Thread.interrupted()) {
             throw new InterruptedException(toString());
         }
 
-        checkDeadLock();
+        checkDeadLock();   // 检查当前线程是否与线程池运行的线程是一个
 
         synchronized (this) {
             while (!isDone()) {
-                incWaiters();
+                incWaiters();       // waiters计数加1
                 try {
-                    wait();
+                    wait();     // Object的方法，让出cpu，加入等待队列 [注意锁池和等待池的区别]
                 } finally {
-                    decWaiters();
+                    decWaiters();    //  waiters计数减1
                 }
             }
         }
         return this;
     }
 
+    /**
+     * 和 {@link #await} 方法的区别就在于，阻塞等待的时候，如果出现线程中断，是否往外抛出异常
+     * awaitUninterruptibly 是不抛出异常，直接退出等待
+     *
+     * @return
+     */
     @Override
     public Promise<V> awaitUninterruptibly() {
         if (isDone()) {
@@ -253,7 +297,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
                     wait();
                 } catch (InterruptedException e) {
                     // Interrupted while waiting.
-                    interrupted = true;
+                    interrupted = true;  //线程中断，不对外抛出异常
                 } finally {
                     decWaiters();
                 }
@@ -261,12 +305,15 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         }
 
         if (interrupted) {
-            Thread.currentThread().interrupt();
+            Thread.currentThread().interrupt(); // 中断当前线程
         }
 
         return this;
     }
 
+    /**
+     * 等待Future任务结束，超过时间则抛出异常
+     */
     @Override
     public boolean await(long timeout, TimeUnit unit) throws InterruptedException {
         return await0(unit.toNanos(timeout), true);
@@ -297,6 +344,10 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         }
     }
 
+    /**
+     * 返回Future任务的执行结果, 如果还没执行完，则返回的是 null
+     * @return
+     */
     @SuppressWarnings("unchecked")
     @Override
     public V getNow() {
@@ -314,9 +365,10 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
      */
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
+        //如果result为null，说明未setUncancellable()/setSuccess/setFailure
         if (RESULT_UPDATER.compareAndSet(this, null, CANCELLATION_CAUSE_HOLDER)) {
-            checkNotifyWaiters();
-            notifyListeners();
+            checkNotifyWaiters();  // 唤醒等待线程
+            notifyListeners();  // 触发监听事件
             return true;
         }
         return false;
@@ -391,6 +443,8 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
 
     protected void checkDeadLock() {
         EventExecutor e = executor();
+
+        //检查当前线程是否与线程池运行的线程是一个
         if (e != null && e.inEventLoop()) {
             throw new BlockingOperationException(toString());
         }
@@ -415,6 +469,8 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
 
     private void notifyListeners() {
         EventExecutor executor = executor();
+        // addListener和setSuccess、setSuccess 都会调用notifyListeners()，
+        // 如果和当前 Promise 内的线程池当前执行的线程是同一个线程，则放在线程池中执行
         if (executor.inEventLoop()) {
             final InternalThreadLocalMap threadLocals = InternalThreadLocalMap.get();
             final int stackDepth = threadLocals.futureListenerStackDepth();
@@ -429,6 +485,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
             }
         }
 
+        // 将唤醒监听事件的任务放到线程池中执行
         safeExecute(executor, new Runnable() {
             @Override
             public void run() {
@@ -520,20 +577,30 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         if (listeners == null) {
             listeners = listener;
         } else if (listeners instanceof DefaultFutureListeners) {
+            //如果监听多于1个，会创建DefaultFutureListeners对象将回调方法保存在一个数组中
             ((DefaultFutureListeners) listeners).add(listener);
         } else {
+            //转化 Listener 类型，将不同的Listener 统一到  DefaultFutureListeners 中去处理
             listeners = new DefaultFutureListeners((GenericFutureListener<?>) listeners, listener);
         }
     }
 
     private void removeListener0(GenericFutureListener<? extends Future<? super V>> listener) {
         if (listeners instanceof DefaultFutureListeners) {
-            ((DefaultFutureListeners) listeners).remove(listener);
+            ((DefaultFutureListeners) listeners).remove(listener);  // 数组中移除对应的 listener
         } else if (listeners == listener) {
-            listeners = null;
+            listeners = null;   // 如果当前 listeners 只有一个，则直接置为 null
         }
     }
 
+    /**
+     * 通知成功时将结果保存在变量result，通知失败时，使用CauseHolder包装Throwable赋值给result
+     * RESULT_UPDATER 是一个使用CAS更新内部属性result的类，
+     * 如果result为null或UNCANCELLABLE，更新为成功/失败结果；UNCANCELLABLE是不可取消状态
+     *
+     * @param result
+     * @return
+     */
     private boolean setSuccess0(V result) {
         return setValue0(result == null ? SUCCESS : result);
     }

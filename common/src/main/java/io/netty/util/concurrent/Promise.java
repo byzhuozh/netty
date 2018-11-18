@@ -25,6 +25,8 @@ public interface Promise<V> extends Future<V> {
      * listeners.
      *
      * If it is success or failed already it will throw an {@link IllegalStateException}.
+     *
+     * 设置future执行结果为成功
      */
     Promise<V> setSuccess(V result);
 
@@ -35,6 +37,8 @@ public interface Promise<V> extends Future<V> {
      * @return {@code true} if and only if successfully marked this future as
      *         a success. Otherwise {@code false} because this future is
      *         already marked as either a success or a failure.
+     *
+     *  尝试设置future执行结果为成功,返回是否设置成功
      */
     boolean trySuccess(V result);
 
@@ -43,6 +47,8 @@ public interface Promise<V> extends Future<V> {
      * listeners.
      *
      * If it is success or failed already it will throw an {@link IllegalStateException}.
+     *
+     * 设置失败
      */
     Promise<V> setFailure(Throwable cause);
 
@@ -61,9 +67,16 @@ public interface Promise<V> extends Future<V> {
      *
      * @return {@code true} if and only if successfully marked this future as uncancellable or it is already done
      *         without being cancelled.  {@code false} if this future has been cancelled already.
+     *
+     *  设置为不能取消
      */
     boolean setUncancellable();
 
+    /**
+     * 覆盖 Future 中的监听方法以及返回结果Future, 结果转为 Promise
+     * @param listener
+     * @return
+     */
     @Override
     Promise<V> addListener(GenericFutureListener<? extends Future<? super V>> listener);
 

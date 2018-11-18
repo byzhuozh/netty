@@ -26,6 +26,9 @@ import io.netty.util.concurrent.GenericFutureListener;
  */
 abstract class CompleteChannelFuture extends CompleteFuture<Void> implements ChannelFuture {
 
+    /**
+     * 通道
+     */
     private final Channel channel;
 
     /**
@@ -100,11 +103,20 @@ abstract class CompleteChannelFuture extends CompleteFuture<Void> implements Cha
         return channel;
     }
 
+    /**
+     * CompleteFuture<Void> 泛型表示返回结果的类型，此处是void,表示不关心返回的结果
+     *
+     * @return
+     */
     @Override
     public Void getNow() {
         return null;
     }
 
+    /**
+     * [#2618] Introduce ChannelPromise.unvoid() and ChannelFuture.isVoid()
+     * @return
+     */
     @Override
     public boolean isVoid() {
         return false;
