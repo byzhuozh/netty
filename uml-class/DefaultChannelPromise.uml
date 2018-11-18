@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>io.netty.channel.DefaultChannelPromise</OriginalElement>
+  <nodes>
+    <node x="1108.5416666666665" y="384.0">io.netty.channel.ChannelProgressivePromise</node>
+    <node x="260.7590579710146" y="172.0">io.netty.util.concurrent.AbstractFuture</node>
+    <node x="710.5416666666666" y="172.0">io.netty.util.concurrent.Promise</node>
+    <node x="217.0" y="470.0">io.netty.channel.SucceededChannelFuture</node>
+    <node x="680.2916666666666" y="0.0">java.lang.SuppressWarnings</node>
+    <node x="82.07246376811588" y="278.0">io.netty.util.concurrent.CompleteFuture</node>
+    <node x="1161.3097826086955" y="172.0">io.netty.util.concurrent.ProgressiveFuture</node>
+    <node x="848.5416666666666" y="384.0">io.netty.util.concurrent.DefaultProgressivePromise</node>
+    <node x="533.5416666666666" y="172.0">io.netty.channel.ChannelFuture</node>
+    <node x="861.7916666666665" y="470.0">io.netty.channel.DefaultChannelProgressivePromise</node>
+    <node x="453.78079710144925" y="278.0">io.netty.util.concurrent.DefaultPromise</node>
+    <node x="556.2916666666666" y="0.0">java.util.concurrent.Future</node>
+    <node x="900.3097826086956" y="278.0">io.netty.channel.ChannelProgressiveFuture</node>
+    <node x="657.4891304347825" y="278.0">io.netty.channel.ChannelPromise</node>
+    <node x="0.0" y="470.0">io.netty.channel.FailedChannelFuture</node>
+    <node x="658.5416666666666" y="384.0">io.netty.channel.ChannelFlushPromiseNotifier.FlushCheckpoint</node>
+    <node x="1152.3097826086955" y="278.0">io.netty.util.concurrent.ProgressivePromise</node>
+    <node x="638.2916666666666" y="86.0">io.netty.util.concurrent.Future</node>
+    <node x="472.54166666666674" y="470.0">io.netty.channel.DefaultChannelPromise</node>
+    <node x="104.0" y="384.0">io.netty.channel.CompleteChannelFuture</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="io.netty.channel.ChannelProgressiveFuture" target="io.netty.util.concurrent.ProgressiveFuture">
+      <point x="58.0" y="-18.0" />
+      <point x="1074.3097826086955" y="258.0" />
+      <point x="1206.0597826086955" y="258.0" />
+      <point x="-44.75" y="18.0" />
+    </edge>
+    <edge source="io.netty.util.concurrent.DefaultPromise" target="io.netty.util.concurrent.Promise">
+      <point x="41.25" y="-18.0" />
+      <point x="577.5307971014493" y="258.0" />
+      <point x="729.875" y="258.0" />
+      <point x="-38.66666666666663" y="18.0" />
+    </edge>
+    <edge source="io.netty.util.concurrent.DefaultPromise" target="io.netty.util.concurrent.AbstractFuture">
+      <point x="-41.25" y="-18.0" />
+      <point x="495.03079710144925" y="248.0" />
+      <point x="380.0090579710146" y="248.0" />
+      <point x="39.75" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.DefaultChannelProgressivePromise" target="io.netty.channel.ChannelProgressivePromise">
+      <point x="97.66666666666686" y="-18.0" />
+      <point x="1105.9583333333335" y="445.0" />
+      <point x="1230.5416666666665" y="445.0" />
+      <point x="0.0" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.DefaultChannelPromise" target="io.netty.util.concurrent.DefaultPromise">
+      <point x="-72.66666666666669" y="-18.0" />
+      <point x="508.875" y="445.0" />
+      <point x="449.9166666666667" y="445.0" />
+      <point x="449.9166666666667" y="364.0" />
+      <point x="495.03079710144925" y="364.0" />
+      <point x="-41.25" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.DefaultChannelProgressivePromise" target="io.netty.util.concurrent.DefaultProgressivePromise">
+      <point x="1.1368683772161603E-13" y="-18.0" />
+      <point x="1008.2916666666666" y="445.0" />
+      <point x="968.5416666666666" y="445.0" />
+      <point x="0.0" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.ChannelProgressivePromise" target="io.netty.channel.ChannelPromise">
+      <point x="-81.33333333333326" y="-18.0" />
+      <point x="1149.2083333333335" y="344.0" />
+      <point x="784.2391304347825" y="344.0" />
+      <point x="42.25" y="18.0" />
+    </edge>
+    <edge source="io.netty.util.concurrent.AbstractFuture" target="io.netty.util.concurrent.Future">
+      <point x="0.0" y="-18.0" />
+      <point x="340.2590579710146" y="142.0" />
+      <point x="651.2916666666666" y="142.0" />
+      <point x="-39.0" y="18.0" />
+    </edge>
+    <edge source="io.netty.util.concurrent.Future" target="java.util.concurrent.Future">
+      <point x="-26.0" y="-18.0" />
+      <point x="664.2916666666666" y="61.0" />
+      <point x="608.2916666666666" y="61.0" />
+      <point x="0.0" y="18.0" />
+    </edge>
+    <edge source="io.netty.util.concurrent.CompleteFuture" target="io.netty.util.concurrent.AbstractFuture">
+      <point x="0.0" y="-18.0" />
+      <point x="166.57246376811588" y="248.0" />
+      <point x="300.5090579710146" y="248.0" />
+      <point x="-39.75" y="18.0" />
+    </edge>
+    <edge source="io.netty.util.concurrent.Future" target="java.lang.SuppressWarnings">
+      <point x="26.0" y="-18.0" />
+      <point x="716.2916666666666" y="61.0" />
+      <point x="772.2916666666666" y="61.0" />
+      <point x="0.0" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.ChannelPromise" target="io.netty.channel.ChannelFuture">
+      <point x="-42.25" y="-18.0" />
+      <point x="699.7391304347825" y="248.0" />
+      <point x="612.0416666666666" y="248.0" />
+      <point x="0.0" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.ChannelProgressiveFuture" target="io.netty.channel.ChannelFuture">
+      <point x="-58.0" y="-18.0" />
+      <point x="958.3097826086956" y="238.0" />
+      <point x="664.375" y="238.0" />
+      <point x="52.33333333333337" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.CompleteChannelFuture" target="io.netty.util.concurrent.CompleteFuture">
+      <point x="-55.5" y="-18.0" />
+      <point x="159.5" y="364.0" />
+      <point x="166.57246376811588" y="364.0" />
+      <point x="0.0" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.ChannelProgressivePromise" target="io.netty.channel.ChannelProgressiveFuture">
+      <point x="0.0" y="-18.0" />
+      <point x="1230.5416666666665" y="334.0" />
+      <point x="1016.3097826086956" y="334.0" />
+      <point x="0.0" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.FailedChannelFuture" target="io.netty.channel.CompleteChannelFuture">
+      <point x="0.0" y="-18.0" />
+      <point x="98.5" y="445.0" />
+      <point x="159.5" y="445.0" />
+      <point x="-55.5" y="18.0" />
+    </edge>
+    <edge source="io.netty.util.concurrent.ProgressivePromise" target="io.netty.util.concurrent.Promise">
+      <point x="-47.75" y="-18.0" />
+      <point x="1200.0597826086955" y="228.0" />
+      <point x="807.2083333333333" y="228.0" />
+      <point x="38.66666666666663" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.CompleteChannelFuture" target="io.netty.channel.ChannelFuture">
+      <point x="55.5" y="-18.0" />
+      <point x="270.5" y="364.0" />
+      <point x="262.5" y="364.0" />
+      <point x="262.5" y="258.0" />
+      <point x="559.7083333333333" y="258.0" />
+      <point x="-52.33333333333337" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.DefaultChannelPromise" target="io.netty.channel.ChannelPromise">
+      <point x="0.0" y="-18.0" />
+      <point x="581.5416666666667" y="445.0" />
+      <point x="648.0416666666666" y="445.0" />
+      <point x="648.0416666666666" y="364.0" />
+      <point x="699.7391304347825" y="364.0" />
+      <point x="-42.25" y="18.0" />
+    </edge>
+    <edge source="io.netty.util.concurrent.Promise" target="io.netty.util.concurrent.Future">
+      <point x="0.0" y="-18.0" />
+      <point x="768.5416666666666" y="152.0" />
+      <point x="703.2916666666666" y="152.0" />
+      <point x="13.0" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.ChannelFuture" target="io.netty.util.concurrent.Future">
+      <point x="0.0" y="-18.0" />
+      <point x="612.0416666666666" y="152.0" />
+      <point x="677.2916666666666" y="152.0" />
+      <point x="-13.0" y="18.0" />
+    </edge>
+    <edge source="io.netty.util.concurrent.ProgressiveFuture" target="io.netty.util.concurrent.Future">
+      <point x="0.0" y="-18.0" />
+      <point x="1250.8097826086955" y="142.0" />
+      <point x="729.2916666666666" y="142.0" />
+      <point x="39.0" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.ChannelProgressivePromise" target="io.netty.util.concurrent.ProgressivePromise">
+      <point x="81.33333333333326" y="-18.0" />
+      <point x="1311.875" y="364.0" />
+      <point x="1295.5597826086955" y="364.0" />
+      <point x="47.75" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.DefaultChannelProgressivePromise" target="io.netty.channel.ChannelFlushPromiseNotifier.FlushCheckpoint">
+      <point x="-97.66666666666663" y="-18.0" />
+      <point x="910.6249999999999" y="445.0" />
+      <point x="786.0416666666666" y="445.0" />
+      <point x="42.5" y="18.0" />
+    </edge>
+    <edge source="io.netty.util.concurrent.DefaultProgressivePromise" target="io.netty.util.concurrent.ProgressivePromise">
+      <point x="60.0" y="-18.0" />
+      <point x="1028.5416666666665" y="364.0" />
+      <point x="1200.0597826086955" y="364.0" />
+      <point x="-47.75" y="18.0" />
+    </edge>
+    <edge source="io.netty.util.concurrent.ProgressivePromise" target="io.netty.util.concurrent.ProgressiveFuture">
+      <point x="47.75" y="-18.0" />
+      <point x="44.75" y="18.0" />
+    </edge>
+    <edge source="io.netty.util.concurrent.DefaultProgressivePromise" target="io.netty.util.concurrent.DefaultPromise">
+      <point x="-60.0" y="-18.0" />
+      <point x="908.5416666666666" y="354.0" />
+      <point x="577.5307971014493" y="354.0" />
+      <point x="41.25" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.SucceededChannelFuture" target="io.netty.channel.CompleteChannelFuture">
+      <point x="0.0" y="-18.0" />
+      <point x="331.5" y="445.0" />
+      <point x="270.5" y="445.0" />
+      <point x="55.5" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.ChannelPromise" target="io.netty.util.concurrent.Promise">
+      <point x="42.25" y="-18.0" />
+      <point x="784.2391304347825" y="258.0" />
+      <point x="768.5416666666666" y="258.0" />
+      <point x="0.0" y="18.0" />
+    </edge>
+    <edge source="io.netty.channel.DefaultChannelPromise" target="io.netty.channel.ChannelFlushPromiseNotifier.FlushCheckpoint">
+      <point x="72.66666666666663" y="-18.0" />
+      <point x="654.2083333333334" y="445.0" />
+      <point x="701.0416666666666" y="445.0" />
+      <point x="-42.5" y="18.0" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="757.0" y="290.0" />
+  <SelectedNodes>
+    <node>io.netty.channel.ChannelFlushPromiseNotifier.FlushCheckpoint</node>
+  </SelectedNodes>
+  <Categories />
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+
