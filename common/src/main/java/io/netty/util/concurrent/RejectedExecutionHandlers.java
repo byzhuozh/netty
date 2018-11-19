@@ -23,8 +23,14 @@ import java.util.concurrent.locks.LockSupport;
 
 /**
  * Expose helper methods which create different {@link RejectedExecutionHandler}s.
+ *
+ * RejectedExecutionHandler 实现类, 2 种实现
  */
 public final class RejectedExecutionHandlers {
+
+    /**
+     * 默认的拒绝策略
+     */
     private static final RejectedExecutionHandler REJECT = new RejectedExecutionHandler() {
         @Override
         public void rejected(Runnable task, SingleThreadEventExecutor executor) {
@@ -36,6 +42,8 @@ public final class RejectedExecutionHandlers {
 
     /**
      * Returns a {@link RejectedExecutionHandler} that will always just throw a {@link RejectedExecutionException}.
+     *
+     * 1.直接拒绝，并抛出异常
      */
     public static RejectedExecutionHandler reject() {
         return REJECT;
@@ -45,6 +53,9 @@ public final class RejectedExecutionHandlers {
      * Tries to backoff when the task can not be added due restrictions for an configured amount of time. This
      * is only done if the task was added from outside of the event loop which means
      * {@link EventExecutor#inEventLoop()} returns {@code false}.
+     *
+     * 2.
+     *
      */
     public static RejectedExecutionHandler backoff(final int retries, long backoffAmount, TimeUnit unit) {
         ObjectUtil.checkPositive(retries, "retries");
@@ -52,12 +63,17 @@ public final class RejectedExecutionHandlers {
         return new RejectedExecutionHandler() {
             @Override
             public void rejected(Runnable task, SingleThreadEventExecutor executor) {
-                if (!executor.inEventLoop()) {
+                if (!executor.inEventLoop()) {      // 非 EventLoop 线程中。如果在 EventLoop 线程中，就无法执行任务，这就导致完全无法重试了
+                    // 循环多次尝试添加到队列中
                     for (int i = 0; i < retries; i++) {
+                        // 唤醒执行器，进行任务执行。这样，就可能执行掉部分任务。
                         // Try to wake up the executor so it will empty its task queue.
                         executor.wakeup(false);
 
+                        // 阻塞等待
                         LockSupport.parkNanos(backOffNanos);
+
+                        // 添加任务
                         if (executor.offerTask(task)) {
                             return;
                         }
@@ -65,6 +81,7 @@ public final class RejectedExecutionHandlers {
                 }
                 // Either we tried to add the task from within the EventLoop or we was not able to add it even with
                 // backoff.
+                // 多次尝试添加失败，抛出 RejectedExecutionException 异常
                 throw new RejectedExecutionException();
             }
         };
