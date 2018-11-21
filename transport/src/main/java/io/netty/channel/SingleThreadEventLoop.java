@@ -32,10 +32,26 @@ import java.util.concurrent.ThreadFactory;
  */
 public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor implements EventLoop {
 
+    /**
+     * 默认任务队列最大数量
+     */
     protected static final int DEFAULT_MAX_PENDING_TASKS = Math.max(16,
             SystemPropertyUtil.getInt("io.netty.eventLoop.maxPendingTasks", Integer.MAX_VALUE));
 
-    private final Queue<Runnable> tailTasks;
+    /**
+     * 尾部任务队列，执行在 {@link #taskQueue} 之后
+     *
+     * Commits
+     *  * [Ability to run a task at the end of an eventloop iteration.](https://github.com/netty/netty/pull/5513)
+     *
+     * Issues
+     *  * [Auto-flush for channels. (`ChannelHandler` implementation)](https://github.com/netty/netty/pull/5716)
+     *  * [Consider removing executeAfterEventLoopIteration](https://github.com/netty/netty/issues/7833)
+     *
+     * 老艿艿：未来会移除该队列，前提是实现了 Channel 的 auto flush 功能。按照最后一个 issue 的讨论
+     *
+     */
+    private final Queue<Runnable> tailTasks;    // 执行的顺序在 taskQueue 之后
 
     protected SingleThreadEventLoop(EventLoopGroup parent, ThreadFactory threadFactory, boolean addTaskWakesUp) {
         this(parent, threadFactory, addTaskWakesUp, DEFAULT_MAX_PENDING_TASKS, RejectedExecutionHandlers.reject());
@@ -77,7 +93,9 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
     @Override
     public ChannelFuture register(final ChannelPromise promise) {
         ObjectUtil.checkNotNull(promise, "promise");
+        // 注册 Channel 到 EventLoop 上
         promise.channel().unsafe().register(this, promise);
+        // 返回 ChannelPromise 对象
         return promise;
     }
 
@@ -103,14 +121,18 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
     @UnstableApi
     public final void executeAfterEventLoopIteration(Runnable task) {
         ObjectUtil.checkNotNull(task, "task");
+        // 关闭时，拒绝任务
         if (isShutdown()) {
             reject();
         }
 
+        // 添加到任务队列
         if (!tailTasks.offer(task)) {
+            // 添加失败，则拒绝任务
             reject(task);
         }
 
+        // 唤醒线程
         if (wakesUpForTask(task)) {
             wakeup(inEventLoop());
         }
@@ -128,11 +150,19 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
         return tailTasks.remove(ObjectUtil.checkNotNull(task, "task"));
     }
 
+    /**
+     * 重写了父类的 wakesUpForTask  {@link SingleThreadEventExecutor#wakesUpForTask(Runnable)}
+     * @param task
+     * @return
+     */
     @Override
     protected boolean wakesUpForTask(Runnable task) {
         return !(task instanceof NonWakeupRunnable);
     }
 
+    /**
+     * 在运行完所有任务后，执行 tailTasks 队列中的任务
+     */
     @Override
     protected void afterRunningAllTasks() {
         runAllTasksFrom(tailTasks);
@@ -143,6 +173,10 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
         return super.hasTasks() || !tailTasks.isEmpty();
     }
 
+    /**
+     * 获得队列中的任务数
+     * @return
+     */
     @Override
     public int pendingTasks() {
         return super.pendingTasks() + tailTasks.size();
@@ -150,6 +184,8 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
 
     /**
      * Marker interface for {@link Runnable} that will not trigger an {@link #wakeup(boolean)} in all cases.
+     *
+     * 用于标记不唤醒线程的任务
      */
     interface NonWakeupRunnable extends Runnable { }
 }
