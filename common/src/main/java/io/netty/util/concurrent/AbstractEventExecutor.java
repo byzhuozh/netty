@@ -36,7 +36,13 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
     static final long DEFAULT_SHUTDOWN_QUIET_PERIOD = 2;
     static final long DEFAULT_SHUTDOWN_TIMEOUT = 15;
 
+    /**
+     * 所属 EventExecutorGroup
+     */
     private final EventExecutorGroup parent;
+    /**
+     * EventExecutor 数组。只包含自己，用于 {@link #iterator()}
+     */
     private final Collection<EventExecutor> selfCollection = Collections.<EventExecutor>singleton(this);
 
     protected AbstractEventExecutor() {
@@ -47,16 +53,29 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
         this.parent = parent;
     }
 
+    /**
+     * 获得所属 EventExecutorGroup
+     * @return
+     */
     @Override
     public EventExecutorGroup parent() {
         return parent;
     }
 
+    /**
+     * 直接返回自己
+     * @return
+     */
     @Override
     public EventExecutor next() {
         return this;
     }
 
+    /**
+     * 判断当前线程是否在 EventLoop 线程中
+     *
+     * @return
+     */
     @Override
     public boolean inEventLoop() {
         return inEventLoop(Thread.currentThread());
@@ -109,6 +128,11 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
         return new FailedFuture<V>(this, cause);
     }
 
+    /**
+     * 提交任务
+     * @param task
+     * @return
+     */
     @Override
     public Future<?> submit(Runnable task) {
         return (Future<?>) super.submit(task);
@@ -124,6 +148,13 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
         return (Future<T>) super.submit(task);
     }
 
+    /**
+     * 创建 PromiseTask 对象， 类似java 的 FutureTask
+     * @param runnable
+     * @param value
+     * @param <T>
+     * @return
+     */
     @Override
     protected final <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
         return new PromiseTask<T>(this, runnable, value);
@@ -134,6 +165,9 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
         return new PromiseTask<T>(this, callable);
     }
 
+    /**
+     * 都不支持定时任务，交给子类 AbstractScheduledEventExecutor 实现
+     */
     @Override
     public ScheduledFuture<?> schedule(Runnable command, long delay,
                                        TimeUnit unit) {
@@ -157,6 +191,8 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
 
     /**
      * Try to execute the given {@link Runnable} and just log if it throws a {@link Throwable}.
+     *
+     *  静态方法，安全的执行任务
      */
     protected static void safeExecute(Runnable task) {
         try {
