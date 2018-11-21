@@ -546,12 +546,13 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         // NOOP
     }
 
+    // 将一个空任务添加到队列中，用于唤醒基于 taskQueue 阻塞拉取的 EventLoop 实现类
     protected void wakeup(boolean inEventLoop) {
         // 判断是否z在 EventLoop  的线程中，如果在 EventLoop 线程中，意味着线程就在执行中，不必要唤醒
         if (!inEventLoop || state == ST_SHUTTING_DOWN) {
             // Use offer as we actually only need this to unblock the thread and if offer fails we do not care as there
             // is already something in the queue.
-            taskQueue.offer(WAKEUP_TASK);  // 将一个空任务添加到队列中，用于唤醒基于 taskQueue 阻塞拉取的 EventLoop 实现类
+            taskQueue.offer(WAKEUP_TASK);
         }
     }
 
