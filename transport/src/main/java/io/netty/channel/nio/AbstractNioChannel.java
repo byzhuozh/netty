@@ -419,7 +419,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                  *  eventLoop().unwrappedSelector() 获取  Java 原生 NIO Selector 对象 --> 每个 NioEventLoop 对象上，都独有一个 Selector 对象。
                  *  javaChannel() 返回的是 NioServerSocketChannel 中的 java 原生的 ServerSocketChannel
                  *  register 注册逻辑和 java 的 nio 一样     channel.regist(Selector)
-                 *  第 2 个参数 ops 为 0 ，可以达到取消注册的效果
+                 *  第 2 个参数 ops 为 0 ，表示 Channel 注册到 Selector 中, 但是不设置 interest set.
                  */
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
