@@ -21,10 +21,20 @@ import io.netty.util.IntSupplier;
  * Default select strategy.
  */
 final class DefaultSelectStrategy implements SelectStrategy {
+
+    /**
+     * 单例
+     */
     static final SelectStrategy INSTANCE = new DefaultSelectStrategy();
 
     private DefaultSelectStrategy() { }
 
+    /**
+     * hasTasks 为 true ，表示当前已经有任务，所以调用 IntSupplier#get() 方法，返回当前 Channel 新增的 IO 就绪事件的数量
+     *
+     * {@link io.netty.channel.nio.NioEventLoop#selectNowSupplier} 重写了 IntSupplier 此接口
+     *
+     */
     @Override
     public int calculateStrategy(IntSupplier selectSupplier, boolean hasTasks) throws Exception {
         return hasTasks ? selectSupplier.get() : SelectStrategy.SELECT;
