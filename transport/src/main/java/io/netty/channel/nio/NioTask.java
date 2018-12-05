@@ -22,11 +22,16 @@ import java.nio.channels.Selector;
 /**
  * An arbitrary task that can be executed by {@link NioEventLoop} when a {@link SelectableChannel} becomes ready.
  *
+ * 用于自定义 Nio 事件处理接口。对于每个 Nio 事件，可以认为是一个任务( Task )
+ * Netty 自身中并未有相关的实现类
+ *
  * @see NioEventLoop#register(SelectableChannel, int, NioTask)
  */
 public interface NioTask<C extends SelectableChannel> {
     /**
      * Invoked when the {@link SelectableChannel} has been selected by the {@link Selector}.
+     *
+     * 处理 Channel IO 就绪的事件
      */
     void channelReady(C ch, SelectionKey key) throws Exception;
 
@@ -36,6 +41,10 @@ public interface NioTask<C extends SelectableChannel> {
      *
      * @param cause the cause of the unregistration. {@code null} if a user called {@link SelectionKey#cancel()} or
      *              the event loop has been shut down.
+     *
+     *  相关讨论：https://github.com/netty/netty/issues/681
+     *
+     * Channel 取消注册
      */
     void channelUnregistered(C ch, Throwable cause) throws Exception;
 }
