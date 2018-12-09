@@ -263,6 +263,8 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     /**
      * @see Queue#poll()
+     *
+     *  获得队头的任务
      */
     protected Runnable pollTask() {
         assert inEventLoop();
@@ -271,7 +273,9 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     protected static Runnable pollTaskFrom(Queue<Runnable> taskQueue) {
         for (;;) {
-            Runnable task = taskQueue.poll();
+            // 获得并移除队首元素。如果获得不到，返回 null
+            Runnable task = taskQueue.poll();   // take 会阻塞
+            // 忽略 WAKEUP_TASK 任务，因为是空任务
             if (task == WAKEUP_TASK) {
                 continue;
             }
@@ -290,17 +294,19 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      */
     protected Runnable takeTask() {
         assert inEventLoop();
-        if (!(taskQueue instanceof BlockingQueue)) {
+        if (!(taskQueue instanceof BlockingQueue)) {     // 任务队列必须是阻塞队列
             throw new UnsupportedOperationException();
         }
 
         BlockingQueue<Runnable> taskQueue = (BlockingQueue<Runnable>) this.taskQueue;
         for (;;) {
+            // 取得调度任务队列的头部任务，注意peek并不移除
             ScheduledFutureTask<?> scheduledTask = peekScheduledTask();
-            if (scheduledTask == null) {
+            if (scheduledTask == null) {     // 没有调度任务
                 Runnable task = null;
                 try {
-                    task = taskQueue.take();
+                    task = taskQueue.take();    // 取得并移除任务队列的头部任务，没有则阻塞
+                    // 当线程需要关闭是，如果线程在take()方法上阻塞，就需要添加一个标记任务WAKEUP_TASK到任务队列，是线程从take()返回，从而正确关闭线程。
                     if (task == WAKEUP_TASK) {
                         task = null;
                     }
@@ -309,16 +315,18 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                 }
                 return task;
             } else {
-                long delayNanos = scheduledTask.delayNanos();
+                long delayNanos = scheduledTask.delayNanos();   // 调度任务的到期时间间隔
                 Runnable task = null;
                 if (delayNanos > 0) {
-                    try {
+                    try {     // 调度任务未到期，则从任务队列取一个任务，可能为null
                         task = taskQueue.poll(delayNanos, TimeUnit.NANOSECONDS);
                     } catch (InterruptedException e) {
                         // Waken up.
                         return null;
                     }
                 }
+
+                // 注意这里执行有两种情况：1.任务队列中没有待执行任务，2.调度任务已到期
                 if (task == null) {
                     // We need to fetch the scheduled tasks now as otherwise there may be a chance that
                     // scheduled tasks are never executed if there is always one task in the taskQueue.
@@ -336,11 +344,13 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     }
 
     private boolean fetchFromScheduledTaskQueue() {
+        // 等价于ScheduledFutureTask.nanoTime()
         long nanoTime = AbstractScheduledEventExecutor.nanoTime();
         Runnable scheduledTask  = pollScheduledTask(nanoTime);
         while (scheduledTask != null) {
             if (!taskQueue.offer(scheduledTask)) {
                 // No space left in the task queue add it back to the scheduledTaskQueue so we pick it up again.
+                // 任务队列已满，则重新添加到调度任务队列
                 scheduledTaskQueue().add((ScheduledFutureTask<?>) scheduledTask);
                 return false;
             }
@@ -428,18 +438,24 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     protected boolean runAllTasks() {
         assert inEventLoop();
         boolean fetchedAll;
-        boolean ranAtLeastOne = false;
+        boolean ranAtLeastOne = false;  // 是否执行过任务
 
         do {
+            // 从调度任务的队列中取出一个任务放到执行的队列中
             fetchedAll = fetchFromScheduledTaskQueue();
+            // 执行任务队列中的所有任务
             if (runAllTasksFrom(taskQueue)) {
+                // 若有任务执行，则标记为 true
                 ranAtLeastOne = true;
             }
         } while (!fetchedAll); // keep on processing until we fetched all scheduled tasks.
 
+        // 如果执行过任务，则设置最后执行时间
         if (ranAtLeastOne) {
             lastExecutionTime = ScheduledFutureTask.nanoTime();
         }
+
+        // 执行所有任务完成的后续方法
         afterRunningAllTasks();
         return ranAtLeastOne;
     }
@@ -452,13 +468,19 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      * @return {@code true} if at least one task was executed.
      */
     protected final boolean runAllTasksFrom(Queue<Runnable> taskQueue) {
+        // 获得队头的任务
         Runnable task = pollTaskFrom(taskQueue);
+
+        // 获取不到，结束执行，返回 false
         if (task == null) {
             return false;
         }
         for (;;) {
+            // 执行任务
             safeExecute(task);
+            // 获得队头的任务
             task = pollTaskFrom(taskQueue);
+            // 获取不到，结束执行，返回 true
             if (task == null) {
                 return true;
             }
@@ -470,38 +492,56 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      * the tasks in the task queue and returns if it ran longer than {@code timeoutNanos}.
      */
     protected boolean runAllTasks(long timeoutNanos) {
+        // 将调度任务队列中到期的任务移到任务队列
         fetchFromScheduledTaskQueue();
-        Runnable task = pollTask();
+        // 获得队头的任务
+        Runnable task = pollTask();   // 从任务队列头部取出一个任务
+        // 获取不到，结束执行
         if (task == null) {
+            // 执行所有任务完成的后续方法, 执行的任务来源是 tailTasks 队列
             afterRunningAllTasks();
             return false;
         }
 
+        // 计算执行任务截止时间
         final long deadline = ScheduledFutureTask.nanoTime() + timeoutNanos;
-        long runTasks = 0;
+        long runTasks = 0;  // 执行任务计数
         long lastExecutionTime;
+        // 循环执行任务
         for (;;) {
+            // 执行任务
             safeExecute(task);
 
+            // 计数 +1
             runTasks ++;
 
+            // 每隔 64 个任务检查一次时间，因为 nanoTime() 是相对费时的操作
+            // 64 这个值当前是硬编码的，无法配置，可能会成为一个问题。
             // Check timeout every 64 tasks because nanoTime() is relatively expensive.
             // XXX: Hard-coded value - will make it configurable if it is really a problem.
             if ((runTasks & 0x3F) == 0) {
+                // 重新获得时间
                 lastExecutionTime = ScheduledFutureTask.nanoTime();
+                // 超过任务截止时间，结束
                 if (lastExecutionTime >= deadline) {
                     break;
                 }
             }
 
+            // 获得队头的任务
             task = pollTask();
+            // 获取不到，结束执行
             if (task == null) {
+                // 重新获得时间
                 lastExecutionTime = ScheduledFutureTask.nanoTime();
                 break;
             }
         }
 
+        // 执行所有任务完成的后续方法
         afterRunningAllTasks();
+
+        // 设置最后执行时间
         this.lastExecutionTime = lastExecutionTime;
         return true;
     }
@@ -552,7 +592,9 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         if (!inEventLoop || state == ST_SHUTTING_DOWN) {
             // Use offer as we actually only need this to unblock the thread and if offer fails we do not care as there
             // is already something in the queue.
-            taskQueue.offer(WAKEUP_TASK);
+            // 非本类原生线程或者本类原生线程需要关闭时，添加一个标记任务使线程从take()返回。
+            // offer失败表明任务队列已有任务，从而线程可以从take()返回故不处理
+            taskQueue.offer(WAKEUP_TASK);   // {@link takeTask()}
         }
     }
 
