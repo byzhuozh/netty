@@ -592,8 +592,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             // TODO 1006 EventLoop 优雅关闭
             // Always handle shutdown even if the loop processing threw an exception.
             try {
-                if (isShuttingDown()) {
-                    closeAll();
+                if (isShuttingDown()) {   // 检测线程状态
+                    closeAll();         // 关闭注册的channel
                     if (confirmShutdown()) {
                         return;
                     }
@@ -631,6 +631,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     @Override
     protected void cleanup() {
         try {
+            // 关闭NioEventLoop持有的selector
             selector.close();
         } catch (IOException e) {
             logger.warn("Failed to close a selector.", e);
@@ -694,7 +695,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
             // TODO 1007 NioEventLoop cancel 方法
             //当取消的选择键达到一定数目时，这个数目在Netty中时CLEANUP_INTERVAL，值为256。
-            // 也就是每取消256个选择键，Netty重新执行一个selectAgain()操作, {@link io.netty.channel.nio.NioEventLoop.cancel}
+            // 也就是每取消256个选择键，Netty重新执行一个selectAgain()操作, {@link NioEventLoop#cancel()}
             if (needsToSelectAgain) {
                 selectAgain();
                 selectedKeys = selector.selectedKeys();

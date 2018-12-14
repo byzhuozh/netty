@@ -86,6 +86,11 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
         return selfCollection.iterator();
     }
 
+    /**
+     * 优雅关闭
+     *
+     * Netty默认的shutdownGracefully()机制为：在 2 秒的静默时间内如果没有任务，则关闭；否则 15 秒截止时间到达时关闭
+     */
     @Override
     public Future<?> shutdownGracefully() {
         return shutdownGracefully(DEFAULT_SHUTDOWN_QUIET_PERIOD, DEFAULT_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS);
