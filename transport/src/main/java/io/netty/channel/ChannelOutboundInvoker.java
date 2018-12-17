@@ -23,6 +23,7 @@ import java.net.SocketAddress;
 
 public interface ChannelOutboundInvoker {
 
+    // ========== Channel 操作相关 ==========
     /**
      * Request to bind to the given {@link SocketAddress} and notify the {@link ChannelFuture} once the operation
      * completes, either because the operation was successful or because of an error.
@@ -229,6 +230,7 @@ public interface ChannelOutboundInvoker {
      */
     ChannelFuture writeAndFlush(Object msg);
 
+    // ========== Promise 相关 ==========
     /**
      * Return a new {@link ChannelPromise}.
      */
