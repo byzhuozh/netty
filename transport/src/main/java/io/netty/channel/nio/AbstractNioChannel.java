@@ -420,6 +420,11 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                  *  javaChannel() 返回的是 NioServerSocketChannel 中的 java 原生的 ServerSocketChannel
                  *  register 注册逻辑和 java 的 nio 一样     channel.regist(Selector)
                  *  第 2 个参数 ops 为 0 ，表示 Channel 注册到 Selector 中, 但是不设置 interest set.
+                 *
+                 *  SelectionKey.OP_CONNECT:8     SelectionKey.OP_ACCEPT:16
+                 *  SelectionKey.OP_READ:1        SelectionKey.OP_WRITE:4
+                 *
+                 *  0 --> 无兴趣事件
                  */
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
