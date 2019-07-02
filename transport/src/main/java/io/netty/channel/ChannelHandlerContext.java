@@ -121,8 +121,12 @@ import java.nio.channels.Channels;
  * {@link ChannelPipeline} to find out more about inbound and outbound operations,
  * what fundamental differences they have, how they flow in a  pipeline,  and how to handle
  * the operation in your application.
+ *
+ * ChannelHandler Context( 上下文 )接口，作为 ChannelPipeline 中的节点
  */
 public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvoker, ChannelOutboundInvoker {
+
+    // ========== Context 相关 ==========
 
     /**
      * Return the {@link Channel} which is bound to the {@link ChannelHandlerContext}.
@@ -147,11 +151,18 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
     ChannelHandler handler();
 
     /**
+     * Return the assigned {@link ChannelPipeline}
+     */
+    ChannelPipeline pipeline();
+
+    /**
      * Return {@code true} if the {@link ChannelHandler} which belongs to this context was removed
      * from the {@link ChannelPipeline}. Note that this method is only meant to be called from with in the
      * {@link EventLoop}.
      */
     boolean isRemoved();
+
+    // ========== ChannelInboundInvoker 相关 ==========
 
     @Override
     ChannelHandlerContext fireChannelRegistered();
@@ -180,21 +191,23 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
     @Override
     ChannelHandlerContext fireChannelWritabilityChanged();
 
+
+    // ========== ChannelOutboundInvoker 相关 ==========
+
     @Override
     ChannelHandlerContext read();
 
     @Override
     ChannelHandlerContext flush();
 
-    /**
-     * Return the assigned {@link ChannelPipeline}
-     */
-    ChannelPipeline pipeline();
+    // ========== ByteBuf 相关 ==========
 
     /**
      * Return the assigned {@link ByteBufAllocator} which will be used to allocate {@link ByteBuf}s.
      */
     ByteBufAllocator alloc();
+
+    // ========== AttributeMap 相关 ==========
 
     /**
      * @deprecated Use {@link Channel#attr(AttributeKey)}
