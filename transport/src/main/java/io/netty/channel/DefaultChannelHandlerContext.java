@@ -17,6 +17,13 @@ package io.netty.channel;
 
 import io.netty.util.concurrent.EventExecutor;
 
+/**
+ * 实现 AbstractChannelHandlerContext 抽象类
+ *
+ *  DefaultChannelHandlerContext 是内嵌 一个 ChannelHandler 对象，即 handler
+ *
+ * 不同于 HeadContext、TailContext，它们自身就是一个 Context 的同时，也是一个 ChannelHandler;
+ */
 final class DefaultChannelHandlerContext extends AbstractChannelHandlerContext {
 
     private final ChannelHandler handler;

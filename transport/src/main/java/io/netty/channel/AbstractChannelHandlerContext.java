@@ -42,7 +42,14 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         implements ChannelHandlerContext, ResourceLeakHint {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractChannelHandlerContext.class);
+
+    /**
+     * 上一个节点
+     */
     volatile AbstractChannelHandlerContext next;
+    /**
+     * 下一个节点
+     */
     volatile AbstractChannelHandlerContext prev;
 
     /**
@@ -69,22 +76,58 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
      */
     private static final int INIT = 0;  // 初始化
 
+    /**
+     * 是否为 inbound
+     */
     private final boolean inbound;
+
+    /**
+     * 是否为 outbound
+     */
     private final boolean outbound;
+
+    /**
+     * 所属 pipeline
+     */
     private final DefaultChannelPipeline pipeline;
+
+    /**
+     * 名字
+     */
     private final String name;
+
+    /**
+     * 是否使用有序的 EventExecutor ( {@link #executor} )，即 OrderedEventExecutor
+     */
     private final boolean ordered;
 
     // Will be set to null if no child executor should be used, otherwise it will be set to the
     // child executor.
+    // EventExecutor 对象
     final EventExecutor executor;
+    /**
+     * 成功的 Promise 对象
+     */
     private ChannelFuture succeededFuture;
 
     // Lazily instantiated tasks used to trigger events to a handler with different executor.
     // There is no need to make this volatile as at worse it will just create a few more instances then needed.
+    // 执行 Channel ReadComplete 事件的任务
     private Runnable invokeChannelReadCompleteTask;
+
+    /**
+     * 执行 Channel Read 事件的任务
+     */
     private Runnable invokeReadTask;
+
+    /**
+     * 执行 Channel WritableStateChanged 事件的任务
+     */
     private Runnable invokeChannelWritableStateChangedTask;
+
+    /**
+     * 执行 flush 事件的任务
+     */
     private Runnable invokeFlushTask;
 
     // ========== 非静态属性 ==========
@@ -963,11 +1006,18 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         return channel().voidPromise();
     }
 
+    /**
+     * 设置 ChannelHandler 已移除
+     */
     final void setRemoved() {
         handlerState = REMOVE_COMPLETE;
     }
 
+    /**
+     * 设置 ChannelHandler 添加完成
+     */
     final void setAddComplete() {
+        // 循环 + CAS 保证多线程下的安全变更 handlerState 属性
         for (;;) {
             int oldState = handlerState;
             // Ensure we never update when the handlerState is REMOVE_COMPLETE already.
@@ -979,6 +1029,11 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         }
     }
 
+    /**
+     * 设置 ChannelHandler 准备添加中
+     *
+     * 当且仅当 INIT 可修改为 ADD_PENDING
+     */
     final void setAddPending() {
         boolean updated = HANDLER_STATE_UPDATER.compareAndSet(this, INIT, ADD_PENDING);
         assert updated; // This should always be true as it MUST be called before setAddComplete() or setRemoved().
