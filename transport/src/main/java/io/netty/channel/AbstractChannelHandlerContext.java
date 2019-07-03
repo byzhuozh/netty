@@ -528,13 +528,20 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         if (localAddress == null) {
             throw new NullPointerException("localAddress");
         }
+
+        // 判断是否为合法的 Promise 对象
         if (isNotValidPromise(promise, false)) {
             // cancelled
             return promise;
         }
 
+        // 获得下一个 Outbound 节点
         final AbstractChannelHandlerContext next = findContextOutbound();
+
+        // 获得下一个 Outbound 节点的执行器
         EventExecutor executor = next.executor();
+
+        // 调用下一个 Outbound 节点的 bind 方法
         if (executor.inEventLoop()) {
             next.invokeBind(localAddress, promise);
         } else {
@@ -549,13 +556,16 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
     }
 
     private void invokeBind(SocketAddress localAddress, ChannelPromise promise) {
-        if (invokeHandler()) {
+        if (invokeHandler()) {  // 判断是否符合的 ChannelHandler
             try {
+                // 调用该 ChannelHandler 的 bind 方法
                 ((ChannelOutboundHandler) handler()).bind(this, localAddress, promise);
             } catch (Throwable t) {
+                // 通知 Outbound 事件的传播，发生异常
                 notifyOutboundHandlerException(t, promise);
             }
         } else {
+            // 跳过，传播 Outbound 事件给下一个节点
             bind(localAddress, promise);
         }
     }
@@ -948,11 +958,15 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         return new FailedChannelFuture(channel(), executor(), cause);
     }
 
+    /**
+     * 判断 promise 是否为合法的 Promise 对象
+     */
     private boolean isNotValidPromise(ChannelPromise promise, boolean allowVoidPromise) {
         if (promise == null) {
             throw new NullPointerException("promise");
         }
 
+        // Promise 已经完成
         if (promise.isDone()) {
             // Check if the promise was cancelled and if so signal that the processing of the operation
             // should not be performed.
@@ -964,20 +978,24 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
             throw new IllegalArgumentException("promise already done: " + promise);
         }
 
+        // Channel 不符合
         if (promise.channel() != channel()) {
             throw new IllegalArgumentException(String.format(
                     "promise.channel does not match: %s (expected: %s)", promise.channel(), channel()));
         }
 
+        // DefaultChannelPromise 合法
         if (promise.getClass() == DefaultChannelPromise.class) {
             return false;
         }
 
+        // 禁止 VoidChannelPromise
         if (!allowVoidPromise && promise instanceof VoidChannelPromise) {
             throw new IllegalArgumentException(
                     StringUtil.simpleClassName(VoidChannelPromise.class) + " not allowed for this operation");
         }
 
+        // 禁止 CloseFuture
         if (promise instanceof AbstractChannel.CloseFuture) {
             throw new IllegalArgumentException(
                     StringUtil.simpleClassName(AbstractChannel.CloseFuture.class) + " not allowed in a pipeline");
@@ -996,6 +1014,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
     private AbstractChannelHandlerContext findContextOutbound() {
         AbstractChannelHandlerContext ctx = this;
         do {
+            // 循环，向前获得一个 Outbound 节点
             ctx = ctx.prev;
         } while (!ctx.outbound);
         return ctx;
@@ -1046,6 +1065,9 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
      * If this method returns {@code false} we will not invoke the {@link ChannelHandler} but just forward the event.
      * This is needed as {@link DefaultChannelPipeline} may already put the {@link ChannelHandler} in the linked-list
      * but not called {@link ChannelHandler#handlerAdded(ChannelHandlerContext)}.
+     *
+     * 对于 ordered = true 的节点，必须 ChannelHandler 已经添加完成。
+     * 对于 ordered = false 的节点，没有 ChannelHandler 的要求。
      */
     private boolean invokeHandler() {
         // Store in local variable to reduce volatile reads.
@@ -1070,11 +1092,14 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
 
     private static void safeExecute(EventExecutor executor, Runnable runnable, ChannelPromise promise, Object msg) {
         try {
+            // 提交 EventLoop 的线程中，进行执行任务
             executor.execute(runnable);
         } catch (Throwable cause) {
             try {
+                // 发生异常，回调通知 promise 相关的异常
                 promise.setFailure(cause);
             } finally {
+                // 释放 msg 相关的资源
                 if (msg != null) {
                     ReferenceCountUtil.release(msg);
                 }
