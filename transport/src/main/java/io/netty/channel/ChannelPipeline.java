@@ -379,6 +379,7 @@ public interface ChannelPipeline
      *
      * @param handlers  the handlers to insert last
      *
+     * 添加任意数量的 ChannelHandler 对象
      */
     ChannelPipeline addLast(ChannelHandler... handlers);
 

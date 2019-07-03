@@ -209,6 +209,8 @@ public interface ChannelHandler {
      * <p>
      * This annotation is provided for documentation purpose, just like
      * <a href="http://www.javaconcurrencyinpractice.com/annotations/doc/">the JCIP annotations</a>.
+     *
+     * 如果我们想要重用一个 ChannelHandler 对象( 例如在 Spring 环境中 )，则必须给这个 ChannelHandler 添加 @Sharable 注解
      */
     @Inherited
     @Documented
