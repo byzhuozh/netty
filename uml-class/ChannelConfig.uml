@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>io.netty.channel.ChannelConfig</OriginalElement>
+  <nodes>
+    <node x="0.0" y="162.0">io.netty.channel.socket.nio.NioSocketChannel.NioSocketChannelConfig</node>
+    <node x="204.0" y="162.0">io.netty.channel.socket.nio.NioServerSocketChannel.NioServerSocketChannelConfig</node>
+    <node x="133.0" y="0.0">io.netty.channel.ChannelConfig</node>
+    <node x="114.0" y="81.0">io.netty.channel.DefaultChannelConfig</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="io.netty.channel.socket.nio.NioSocketChannel.NioSocketChannelConfig" target="io.netty.channel.DefaultChannelConfig">
+      <point x="46.0" y="-15.5" />
+      <point x="138.0" y="137.0" />
+      <point x="156.0" y="137.0" />
+      <point x="-42.0" y="15.5" />
+    </edge>
+    <edge source="io.netty.channel.socket.nio.NioServerSocketChannel.NioServerSocketChannelConfig" target="io.netty.channel.ChannelConfig">
+      <point x="54.0" y="-15.5" />
+      <point x="366.0" y="137.0" />
+      <point x="336.91666666666663" y="137.0" />
+      <point x="336.91666666666663" y="56.0" />
+      <point x="241.33333333333337" y="56.0" />
+      <point x="43.33333333333337" y="15.5" />
+    </edge>
+    <edge source="io.netty.channel.socket.nio.NioSocketChannel.NioSocketChannelConfig" target="io.netty.channel.ChannelConfig">
+      <point x="-46.0" y="-15.5" />
+      <point x="46.0" y="137.0" />
+      <point x="64.41666666666666" y="137.0" />
+      <point x="64.41666666666666" y="56.0" />
+      <point x="154.66666666666666" y="56.0" />
+      <point x="-43.33333333333334" y="15.5" />
+    </edge>
+    <edge source="io.netty.channel.DefaultChannelConfig" target="io.netty.channel.ChannelConfig">
+      <point x="0.0" y="-15.5" />
+      <point x="0.0" y="15.5" />
+    </edge>
+    <edge source="io.netty.channel.socket.nio.NioServerSocketChannel.NioServerSocketChannelConfig" target="io.netty.channel.DefaultChannelConfig">
+      <point x="-54.0" y="-15.5" />
+      <point x="258.0" y="137.0" />
+      <point x="240.0" y="137.0" />
+      <point x="42.0" y="15.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="65.0" y="15.5" />
+  <SelectedNodes />
+  <Categories>
+    <Category>Inner Classes</Category>
+  </Categories>
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+
