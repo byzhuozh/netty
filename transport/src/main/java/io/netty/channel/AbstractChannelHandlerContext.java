@@ -242,12 +242,16 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
 
     @Override
     public ChannelHandlerContext fireChannelActive() {
+        // 获得下一个 Inbound 节点的执行器
+        // 调用下一个 Inbound 节点的 Channel active 方法
         invokeChannelActive(findContextInbound());
         return this;
     }
 
     static void invokeChannelActive(final AbstractChannelHandlerContext next) {
+        // 获得下一个 Inbound 节点的执行器
         EventExecutor executor = next.executor();
+        // 调用下一个 Inbound 节点的 Channel active 方法
         if (executor.inEventLoop()) {
             next.invokeChannelActive();
         } else {
@@ -261,13 +265,16 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
     }
 
     private void invokeChannelActive() {
-        if (invokeHandler()) {
+        if (invokeHandler()) {  // 判断是否符合的 ChannelHandler
             try {
+                // 调用该 ChannelHandler 的 Channel active 方法
                 ((ChannelInboundHandler) handler()).channelActive(this);
             } catch (Throwable t) {
+                // 通知 Inbound 事件的传播，发生异常
                 notifyHandlerException(t);
             }
         } else {
+            // 跳过，传播 Inbound 事件给下一个节点
             fireChannelActive();
         }
     }
@@ -901,7 +908,12 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         PromiseNotificationUtil.tryFailure(promise, cause, promise instanceof VoidChannelPromise ? null : logger);
     }
 
+    /**
+     * 通知 Inbound 事件的传播，发生异常
+     */
     private void notifyHandlerException(Throwable cause) {
+        // <1> 如果是在 `ChannelHandler#exceptionCaught(ChannelHandlerContext ctx, Throwable cause)` 方法中，
+        // 仅打印错误日志。否则会形成死循环。
         if (inExceptionCaught(cause)) {
             if (logger.isWarnEnabled()) {
                 logger.warn(
@@ -911,6 +923,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
             return;
         }
 
+        // <2> 在 pipeline 中，传播 Exception Caught 事件
         invokeExceptionCaught(cause);
     }
 
@@ -918,18 +931,18 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         do {
             StackTraceElement[] trace = cause.getStackTrace();
             if (trace != null) {
-                for (StackTraceElement t : trace) {
+                for (StackTraceElement t : trace) { // 循环 StackTraceElement
                     if (t == null) {
                         break;
                     }
-                    if ("exceptionCaught".equals(t.getMethodName())) {
+                    if ("exceptionCaught".equals(t.getMethodName())) {   // 通过方法名判断
                         return true;
                     }
                 }
             }
 
             cause = cause.getCause();
-        } while (cause != null);
+        } while (cause != null);    // 循环异常的 cause() ，直到到没有
 
         return false;
     }
@@ -1004,6 +1017,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
     }
 
     private AbstractChannelHandlerContext findContextInbound() {
+        // 循环，向后获得一个 Inbound 节点
         AbstractChannelHandlerContext ctx = this;
         do {
             ctx = ctx.next;

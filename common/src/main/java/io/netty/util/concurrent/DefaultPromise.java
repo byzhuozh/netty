@@ -134,11 +134,11 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
 
     @Override
     public boolean tryFailure(Throwable cause) {
-        if (setFailure0(cause)) {
-            notifyListeners();
-            return true;
+        if (setFailure0(cause)) {   // 设置 Promise 的结果
+            notifyListeners();   // 通知监听器
+            return true;    // 返回成功
         }
-        return false;
+        return false;   // 返回失败
     }
 
     @Override
