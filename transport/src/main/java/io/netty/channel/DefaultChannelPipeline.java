@@ -1365,6 +1365,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            // 该方法是个空方法，标志 inbound 时间的传播结束
             onUnhandledInboundChannelActive();
         }
 
@@ -1505,8 +1506,10 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            // 传播 Channel active 事件给下一个 Inbound 节点 <1>
             ctx.fireChannelActive();
 
+            // 执行 read 逻辑 <2>
             readIfIsAutoRead();
         }
 
@@ -1529,7 +1532,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         private void readIfIsAutoRead() {
             if (channel.config().isAutoRead()) {
-                channel.read();
+                channel.read(); // 内部通过 pipeline 传递该 read OutBound 事件，最终调用 HeadContext#read()
             }
         }
 

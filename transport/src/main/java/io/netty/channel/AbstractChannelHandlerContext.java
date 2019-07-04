@@ -242,12 +242,16 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
 
     @Override
     public ChannelHandlerContext fireChannelActive() {
+        // 获得下一个 Inbound 节点的执行器
+        // 调用下一个 Inbound 节点的 Channel active 方法
         invokeChannelActive(findContextInbound());
         return this;
     }
 
     static void invokeChannelActive(final AbstractChannelHandlerContext next) {
+        // 获得下一个 Inbound 节点的执行器
         EventExecutor executor = next.executor();
+        // 调用下一个 Inbound 节点的 Channel active 方法
         if (executor.inEventLoop()) {
             next.invokeChannelActive();
         } else {
@@ -261,13 +265,16 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
     }
 
     private void invokeChannelActive() {
-        if (invokeHandler()) {
+        if (invokeHandler()) {  // 判断是否符合的 ChannelHandler
             try {
+                // 调用该 ChannelHandler 的 Channel active 方法
                 ((ChannelInboundHandler) handler()).channelActive(this);
             } catch (Throwable t) {
+                // 通知 Inbound 事件的传播，发生异常
                 notifyHandlerException(t);
             }
         } else {
+            // 跳过，传播 Inbound 事件给下一个节点
             fireChannelActive();
         }
     }
@@ -1004,6 +1011,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
     }
 
     private AbstractChannelHandlerContext findContextInbound() {
+        // 循环，向后获得一个 Inbound 节点
         AbstractChannelHandlerContext ctx = this;
         do {
             ctx = ctx.next;
