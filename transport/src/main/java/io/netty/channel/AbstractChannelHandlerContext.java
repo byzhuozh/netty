@@ -908,7 +908,12 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         PromiseNotificationUtil.tryFailure(promise, cause, promise instanceof VoidChannelPromise ? null : logger);
     }
 
+    /**
+     * 通知 Inbound 事件的传播，发生异常
+     */
     private void notifyHandlerException(Throwable cause) {
+        // <1> 如果是在 `ChannelHandler#exceptionCaught(ChannelHandlerContext ctx, Throwable cause)` 方法中，
+        // 仅打印错误日志。否则会形成死循环。
         if (inExceptionCaught(cause)) {
             if (logger.isWarnEnabled()) {
                 logger.warn(
@@ -918,6 +923,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
             return;
         }
 
+        // <2> 在 pipeline 中，传播 Exception Caught 事件
         invokeExceptionCaught(cause);
     }
 
@@ -925,18 +931,18 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         do {
             StackTraceElement[] trace = cause.getStackTrace();
             if (trace != null) {
-                for (StackTraceElement t : trace) {
+                for (StackTraceElement t : trace) { // 循环 StackTraceElement
                     if (t == null) {
                         break;
                     }
-                    if ("exceptionCaught".equals(t.getMethodName())) {
+                    if ("exceptionCaught".equals(t.getMethodName())) {   // 通过方法名判断
                         return true;
                     }
                 }
             }
 
             cause = cause.getCause();
-        } while (cause != null);
+        } while (cause != null);    // 循环异常的 cause() ，直到到没有
 
         return false;
     }
