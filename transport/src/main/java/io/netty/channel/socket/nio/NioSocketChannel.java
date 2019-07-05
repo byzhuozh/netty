@@ -445,6 +445,9 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         return new NioSocketChannelUnsafe();
     }
 
+    /**
+     * 客户端 unsafe
+     */
     private final class NioSocketChannelUnsafe extends NioByteUnsafe {
         @Override
         protected Executor prepareToClose() {

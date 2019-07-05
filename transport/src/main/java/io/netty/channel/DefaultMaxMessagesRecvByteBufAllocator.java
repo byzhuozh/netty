@@ -104,9 +104,9 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
          */
         @Override
         public void reset(ChannelConfig config) {
-            this.config = config;
-            maxMessagePerRead = maxMessagesPerRead();
-            totalMessages = totalBytesRead = 0;
+            this.config = config;    // 重置 ChannelConfig 对象
+            maxMessagePerRead = maxMessagesPerRead();   // 重置 maxMessagePerRead 属性
+            totalMessages = totalBytesRead = 0; // 重置 totalMessages 和 totalBytesRead 属性
         }
 
         @Override
@@ -142,7 +142,7 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
             return config.isAutoRead() &&
                    (!respectMaybeMoreData || maybeMoreDataSupplier.get()) &&
                    totalMessages < maxMessagePerRead &&
-                   totalBytesRead > 0;
+                   totalBytesRead > 0;  // 此时 totalBytesRead 等于 0 ，所以会返回 false, 因此，对于 NioServerSocketChannel 来说，每次只接受一个新的客户端连接
         }
 
         @Override
