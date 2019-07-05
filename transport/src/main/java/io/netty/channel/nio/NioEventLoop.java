@@ -774,6 +774,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         try {
             // 获得就绪的 IO 事件的 ops
             int readyOps = k.readyOps();
+
             // OP_CONNECT 事件就绪
             // We first need to call finishConnect() before try to trigger a read(...) or write(...) as otherwise
             // the NIO JDK channel implementation may throw a NotYetConnectedException.
@@ -803,6 +804,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {
                 unsafe.read();
             }
+
         } catch (CancelledKeyException ignored) {
             // 发生异常，关闭 Channel
             unsafe.close(unsafe.voidPromise());
