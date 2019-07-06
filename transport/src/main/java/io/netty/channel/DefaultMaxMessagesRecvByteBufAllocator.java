@@ -95,7 +95,7 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
         private final UncheckedBooleanSupplier defaultMaybeMoreSupplier = new UncheckedBooleanSupplier() {
             @Override
             public boolean get() {
-                return attemptedBytesRead == lastBytesRead;
+                return attemptedBytesRead == lastBytesRead; // 最后读取的字节数，是否等于，最大可写入的字节数
             }
         };
 
@@ -121,9 +121,9 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
 
         @Override
         public void lastBytesRead(int bytes) {
-            lastBytesRead = bytes;
+            lastBytesRead = bytes;   // 设置最后一次读取字节数
             if (bytes > 0) {
-                totalBytesRead += bytes;
+                totalBytesRead += bytes;    // 总共读取字节数
             }
         }
 
