@@ -1122,7 +1122,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     @Override
     public final ChannelPipeline flush() {
-        tail.flush();
+        tail.flush();   // 从尾节点向头节点传播
         return this;
     }
 
@@ -1530,7 +1530,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         @Override
         public void flush(ChannelHandlerContext ctx) throws Exception {
-            unsafe.flush();
+            unsafe.flush(); // 刷新内存队列，将其中的数据写入到对端
         }
 
         @Override

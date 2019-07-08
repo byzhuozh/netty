@@ -802,7 +802,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             // Also check for readOps of 0 to workaround possible JDK bug which may otherwise lead
             // to a spin loop
             if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {
-                unsafe.read();
+                unsafe.read();   // 调用 NioByteUnsafe#read() 方法，读取新的写入数据
             }
 
         } catch (CancelledKeyException ignored) {

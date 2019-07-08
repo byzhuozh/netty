@@ -403,8 +403,13 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             super.flush0();
         }
 
+        /**
+         * 是否已经处于 flush 准备中
+         * @return
+         */
         private boolean isFlushPending() {
             SelectionKey selectionKey = selectionKey();
+            // 对 SelectionKey.OP_WRITE 事件不感兴趣
             return selectionKey.isValid() && (selectionKey.interestOps() & SelectionKey.OP_WRITE) != 0;
         }
     }
