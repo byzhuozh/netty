@@ -300,21 +300,31 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         incompleteWrite(writeSpinCount < 0);
     }
 
+    /**
+     * 过滤写入的消息( 数据 )
+     * @param msg
+     * @return
+     */
     @Override
     protected final Object filterOutboundMessage(Object msg) {
+        // <1> ByteBuf 的情况
         if (msg instanceof ByteBuf) {
             ByteBuf buf = (ByteBuf) msg;
+            // 已经是内存 ByteBuf
             if (buf.isDirect()) {
                 return msg;
             }
 
+            // 非内存 ByteBuf ，需要进行创建封装
             return newDirectBuffer(buf);
         }
 
+        // <2> FileRegion 的情况
         if (msg instanceof FileRegion) {
             return msg;
         }
 
+        // <3> 不支持其他类型
         throw new UnsupportedOperationException(
                 "unsupported message type: " + StringUtil.simpleClassName(msg) + EXPECTED_TYPES);
     }

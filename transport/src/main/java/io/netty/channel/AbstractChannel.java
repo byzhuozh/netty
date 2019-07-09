@@ -953,17 +953,25 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
         }
 
+        /**
+         * 在 pipeline 中，write 事件最终会到达 HeadContext 节点
+         * @param msg
+         * @param promise
+         */
         @Override
         public final void write(Object msg, ChannelPromise promise) {
             assertEventLoop();
 
             ChannelOutboundBuffer outboundBuffer = this.outboundBuffer;
+            // 内存队列为空
             if (outboundBuffer == null) {
+                // 内存队列为空，一般是 Channel 已经关闭，所以通知 Promise 异常结果
                 // If the outboundBuffer is null we know the channel was closed and so
                 // need to fail the future right away. If it is not null the handling of the rest
                 // will be done in flush0()
                 // See https://github.com/netty/netty/issues/2362
                 safeSetFailure(promise, WRITE_CLOSED_CHANNEL_EXCEPTION);
+                // 释放消息( 对象 )相关的资源
                 // release message now to prevent resource-leak
                 ReferenceCountUtil.release(msg);
                 return;
@@ -971,17 +979,22 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             int size;
             try {
+                // 过滤写入的消息( 数据 )
                 msg = filterOutboundMessage(msg);
+                // 计算消息的长度
                 size = pipeline.estimatorHandle().size(msg);
                 if (size < 0) {
                     size = 0;
                 }
             } catch (Throwable t) {
+                // 通知 Promise 异常结果
                 safeSetFailure(promise, t);
+                // 释放消息( 对象 )相关的资源
                 ReferenceCountUtil.release(msg);
                 return;
             }
 
+            // 写入消息( 数据 )到内存队列
             outboundBuffer.addMessage(msg, size, promise);
         }
 
