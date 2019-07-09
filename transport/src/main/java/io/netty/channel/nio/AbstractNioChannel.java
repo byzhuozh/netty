@@ -454,6 +454,8 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
     @Override
     protected void doDeregister() throws Exception {
+        // 取消 SelectionKey ，即相当于调用 SelectionKey#cancel() 方法
+        // 对通道的读写等等 IO 就绪事件不再感兴趣，也不会做出相应的处理
         eventLoop().cancel(selectionKey());
     }
 
@@ -554,6 +556,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
     @Override
     protected void doClose() throws Exception {
+        // 通知 connectPromise 异常失败
         ChannelPromise promise = connectPromise;
         if (promise != null) {
             // Use tryFailure() instead of setFailure() to avoid the race against cancel().
@@ -561,6 +564,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             connectPromise = null;
         }
 
+        // 取消 connectTimeoutFuture 等待
         ScheduledFuture<?> future = connectTimeoutFuture;
         if (future != null) {       // channel 关闭，如果定时器的监控还未关闭，则取消监听连接远程地址
             future.cancel(false);

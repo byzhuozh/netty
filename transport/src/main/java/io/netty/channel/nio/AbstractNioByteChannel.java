@@ -91,21 +91,29 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
     private static boolean isAllowHalfClosure(ChannelConfig config) {
         return config instanceof SocketChannelConfig &&
-                ((SocketChannelConfig) config).isAllowHalfClosure();
+                ((SocketChannelConfig) config).isAllowHalfClosure(); //Netty 参数，一个连接的远端关闭时本地端是否关闭，默认值为 false
     }
 
     protected class NioByteUnsafe extends AbstractNioUnsafe {
 
+        /**
+         * 关闭客户端的连接
+         * @param pipeline
+         */
         private void closeOnRead(ChannelPipeline pipeline) {
             if (!isInputShutdown0()) {
+                // 开启连接半关闭
                 if (isAllowHalfClosure(config())) {
+                    // 关闭 Channel 数据的读取
                     shutdownInput();
                     pipeline.fireUserEventTriggered(ChannelInputShutdownEvent.INSTANCE);
                 } else {
                     close(voidPromise());
                 }
             } else {
+                // 标记 inputClosedSeenErrorOnRead 为 true
                 inputClosedSeenErrorOnRead = true;
+                // 触发 ChannelInputShutdownEvent.INSTANCE 事件到 pipeline 中
                 pipeline.fireUserEventTriggered(ChannelInputShutdownReadComplete.INSTANCE);
             }
         }

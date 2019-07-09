@@ -520,6 +520,8 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         return disconnect(newPromise());
     }
 
+    // FROM AbstractChannelHandlerContext.java
+    // 因为 TailContext 继承 AbstractChannelHandlerContext 抽象类，该方法是它实现的
     @Override
     public ChannelFuture close() {
         return close(newPromise());
