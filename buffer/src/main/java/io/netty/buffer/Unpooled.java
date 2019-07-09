@@ -75,11 +75,17 @@ public final class Unpooled {
 
     /**
      * Big endian byte order.
+     *
+     * 字节存储次序
+     *
+     * 高位字节排放在内存的低地址端，低位字节排放在内存的高地址端
      */
     public static final ByteOrder BIG_ENDIAN = ByteOrder.BIG_ENDIAN;
 
     /**
      * Little endian byte order.
+     *
+     * 低位字节排放在内存的低地址端，高位字节排放在内存的高地址端
      */
     public static final ByteOrder LITTLE_ENDIAN = ByteOrder.LITTLE_ENDIAN;
 
@@ -690,10 +696,12 @@ public final class Unpooled {
     @Deprecated
     public static ByteBuf unmodifiableBuffer(ByteBuf buffer) {
         ByteOrder endianness = buffer.order();
+        // 大端模式
         if (endianness == BIG_ENDIAN) {
             return new ReadOnlyByteBuf(buffer);
         }
 
+        // 小端模式
         return new ReadOnlyByteBuf(buffer.order(BIG_ENDIAN)).order(LITTLE_ENDIAN);
     }
 
