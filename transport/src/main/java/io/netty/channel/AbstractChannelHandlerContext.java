@@ -626,6 +626,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
 
     @Override
     public ChannelFuture disconnect(final ChannelPromise promise) {
+        // 判断是否为合法的 Promise 对象
         if (isNotValidPromise(promise, false)) {
             // cancelled
             return promise;
@@ -634,20 +635,24 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
         final AbstractChannelHandlerContext next = findContextOutbound();
         EventExecutor executor = next.executor();
         if (executor.inEventLoop()) {
+            // 如果没有 disconnect 操作，则执行 close 事件在 pipeline 上
             // Translate disconnect to close if the channel has no notion of disconnect-reconnect.
             // So far, UDP/IP is the only transport that has such behavior.
             if (!channel().metadata().hasDisconnect()) {
                 next.invokeClose(promise);
             } else {
+                // 如果有 disconnect 操作，则执行 disconnect 事件在 pipeline 上
                 next.invokeDisconnect(promise);
             }
         } else {
             safeExecute(executor, new Runnable() {
                 @Override
                 public void run() {
+                    // 如果没有 disconnect 操作，则执行 close 事件在 pipeline 上
                     if (!channel().metadata().hasDisconnect()) {
                         next.invokeClose(promise);
                     } else {
+                        // 如果有 disconnect 操作，则执行 disconnect 事件在 pipeline 上
                         next.invokeDisconnect(promise);
                     }
                 }

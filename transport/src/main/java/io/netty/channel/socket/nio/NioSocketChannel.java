@@ -338,6 +338,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         }
     }
 
+    //关闭 NioSocketChannel 通道
     @Override
     protected void doDisconnect() throws Exception {
         doClose();

@@ -248,6 +248,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         return pipeline.connect(remoteAddress, localAddress);
     }
 
+    // 关闭 NioSocketChannel 通道
     @Override
     public ChannelFuture disconnect() {
         return pipeline.disconnect();
