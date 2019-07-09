@@ -861,13 +861,16 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
             throw new NullPointerException("msg");
         }
 
+        // 判断是否为合法的 Promise 对象
         if (isNotValidPromise(promise, true)) {
+            // 释放消息( 数据 )相关的资源
             ReferenceCountUtil.release(msg);
             // cancelled
             return promise;
         }
 
-        write(msg, true, promise);
+        // 写入消息( 数据 )到内存队列
+        write(msg, true, promise); // 第二个参数 true, 表示需要进行 flush 操作
 
         return promise;
     }
@@ -882,13 +885,16 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap
     }
 
     private void write(Object msg, boolean flush, ChannelPromise promise) {
+        // 获得下一个 Outbound 节点
         AbstractChannelHandlerContext next = findContextOutbound();
         final Object m = pipeline.touch(msg, next);
         EventExecutor executor = next.executor();
         if (executor.inEventLoop()) {
             if (flush) {
+                // 执行 write + flush 操作
                 next.invokeWriteAndFlush(m, promise);
             } else {
+                // 执行 write 操作
                 next.invokeWrite(m, promise);
             }
         } else {
