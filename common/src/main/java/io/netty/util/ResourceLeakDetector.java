@@ -37,18 +37,31 @@ import static io.netty.util.internal.StringUtil.EMPTY_STRING;
 import static io.netty.util.internal.StringUtil.NEWLINE;
 import static io.netty.util.internal.StringUtil.simpleClassName;
 
+/**
+ * 内存泄露检测器
+ * @param <T>
+ */
 public class ResourceLeakDetector<T> {
 
     private static final String PROP_LEVEL_OLD = "io.netty.leakDetectionLevel";
     private static final String PROP_LEVEL = "io.netty.leakDetection.level";
+
+    /**
+     * 默认内存检测级别
+     */
     private static final Level DEFAULT_LEVEL = Level.SIMPLE;
 
     private static final String PROP_TARGET_RECORDS = "io.netty.leakDetection.targetRecords";
     private static final int DEFAULT_TARGET_RECORDS = 4;
 
+    /**
+     * 每个 DefaultResourceLeak 记录的 Record 数量
+     */
     private static final int TARGET_RECORDS;
 
     /**
+     * 内存检测级别枚举
+     *
      * Represents the level of resource leak detection.
      */
     public enum Level {
@@ -89,11 +102,15 @@ public class ResourceLeakDetector<T> {
         }
     }
 
+    /**
+     * 内存泄露检测等级
+     */
     private static Level level;
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(ResourceLeakDetector.class);
 
     static {
+        // 获得是否禁用泄露检测
         final boolean disabled;
         if (SystemPropertyUtil.get("io.netty.noResourceLeakDetection") != null) {
             disabled = SystemPropertyUtil.getBoolean("io.netty.noResourceLeakDetection", false);
@@ -105,17 +122,24 @@ public class ResourceLeakDetector<T> {
             disabled = false;
         }
 
+        // 获得默认级别
         Level defaultLevel = disabled? Level.DISABLED : DEFAULT_LEVEL;
 
+        // 获得配置的级别字符串，从老版本的配置
         // First read old property name
         String levelStr = SystemPropertyUtil.get(PROP_LEVEL_OLD, defaultLevel.name());
 
+        // 获得配置的级别字符串，从新版本的配置
         // If new property name is present, use it
         levelStr = SystemPropertyUtil.get(PROP_LEVEL, levelStr);
+
+        // 获得最终的级别
         Level level = Level.parseLevel(levelStr);
 
+        // 初始化 TARGET_RECORDS
         TARGET_RECORDS = SystemPropertyUtil.getInt(PROP_TARGET_RECORDS, DEFAULT_TARGET_RECORDS);
 
+        // 设置最终的级别
         ResourceLeakDetector.level = level;
         if (logger.isDebugEnabled()) {
             logger.debug("-D{}: {}", PROP_LEVEL, level.name().toLowerCase());
@@ -123,6 +147,9 @@ public class ResourceLeakDetector<T> {
         }
     }
 
+    /**
+     * 默认采集频率
+     */
     // There is a minor performance benefit in TLR if this is a power of 2.
     static final int DEFAULT_SAMPLING_INTERVAL = 128;
 
