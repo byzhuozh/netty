@@ -194,11 +194,19 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
         return allocator;
     }
 
+    /**
+     * 返回字节序为 ByteOrder.BIG_ENDIAN 大端
+     * @return
+     */
     @Override
     public final ByteOrder order() {
         return ByteOrder.BIG_ENDIAN;
     }
 
+    /**
+     * 返回空，因为没有被装饰的 ByteBuffer 对象
+     * @return
+     */
     @Override
     public final ByteBuf unwrap() {
         return null;
@@ -206,12 +214,14 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
 
     @Override
     public final ByteBuf retainedDuplicate() {
+        // 创建池化的 PooledDuplicatedByteBuf 对象
         return PooledDuplicatedByteBuf.newInstance(this, this, readerIndex(), writerIndex());
     }
 
     @Override
     public final ByteBuf retainedSlice() {
         final int index = readerIndex();
+        // 创建池化的 PooledSlicedByteBuf 对象
         return retainedSlice(index, writerIndex() - index);
     }
 
@@ -220,8 +230,12 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
         return PooledSlicedByteBuf.newInstance(this, this, index, length);
     }
 
+    /**
+     * 获得临时 ByteBuf 对象( tmpNioBuf )
+     */
     protected final ByteBuffer internalNioBuffer() {
         ByteBuffer tmpNioBuf = this.tmpNioBuf;
+        // 为空，创建临时 ByteBuf 对象
         if (tmpNioBuf == null) {
             this.tmpNioBuf = tmpNioBuf = newInternalNioBuffer(memory);
         }
@@ -230,23 +244,30 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
 
     protected abstract ByteBuffer newInternalNioBuffer(T memory);
 
+    /**
+     * 当引用计数为 0 时，调用该方法，进行内存回收
+     */
     @Override
     protected final void deallocate() {
         if (handle >= 0) {
+            // 重置属性
             final long handle = this.handle;
             this.handle = -1;
             memory = null;
             tmpNioBuf = null;
+            // 释放内存回 Arena 中
             chunk.arena.free(chunk, handle, maxLength, cache);
             chunk = null;
+            // 回收对象
             recycle();
         }
     }
 
     private void recycle() {
-        recyclerHandle.recycle(this);
+        recyclerHandle.recycle(this);   // 回收对象
     }
 
+    // 获得指定位置在 memory 变量中的位置
     protected final int idx(int index) {
         return offset + index;
     }

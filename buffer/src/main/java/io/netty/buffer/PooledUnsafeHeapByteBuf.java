@@ -19,6 +19,9 @@ import io.netty.util.Recycler;
 import io.netty.util.Recycler.Handle;
 import io.netty.util.internal.PlatformDependent;
 
+/**
+ * 基于 Unsafe 的可重用 ByteBuf 实现类, 泛型 T 为 byte[]
+ */
 final class PooledUnsafeHeapByteBuf extends PooledHeapByteBuf {
 
     private static final Recycler<PooledUnsafeHeapByteBuf> RECYCLER = new Recycler<PooledUnsafeHeapByteBuf>() {

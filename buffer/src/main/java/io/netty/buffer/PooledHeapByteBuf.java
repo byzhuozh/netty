@@ -26,6 +26,9 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.ScatteringByteChannel;
 
+/**
+ * 基于 ByteBuffer 的可重用 ByteBuf 实现类。所以，泛型 T 为 byte[]
+ */
 class PooledHeapByteBuf extends PooledByteBuf<byte[]> {
 
     private static final Recycler<PooledHeapByteBuf> RECYCLER = new Recycler<PooledHeapByteBuf>() {
@@ -35,7 +38,7 @@ class PooledHeapByteBuf extends PooledByteBuf<byte[]> {
         }
     };
 
-    static PooledHeapByteBuf newInstance(int maxCapacity) {
+    static PooledHeapByteBuf    newInstance(int maxCapacity) {
         PooledHeapByteBuf buf = RECYCLER.get();
         buf.reuse(maxCapacity);
         return buf;
@@ -45,6 +48,7 @@ class PooledHeapByteBuf extends PooledByteBuf<byte[]> {
         super(recyclerHandle, maxCapacity);
     }
 
+    //获得内部类型是否为 Direct ，返回 false
     @Override
     public final boolean isDirect() {
         return false;
@@ -275,10 +279,16 @@ class PooledHeapByteBuf extends PooledByteBuf<byte[]> {
         }
     }
 
+    /**
+     * 复制指定范围的数据到新创建的 Heap ByteBuf 对象
+     */
     @Override
     public final ByteBuf copy(int index, int length) {
+        // 校验索引
         checkIndex(index, length);
+        // 创建一个 Heap ByteBuf 对象
         ByteBuf copy = alloc().heapBuffer(length, maxCapacity());
+        // 写入数据
         copy.writeBytes(memory, idx(index), length);
         return copy;
     }
@@ -296,8 +306,11 @@ class PooledHeapByteBuf extends PooledByteBuf<byte[]> {
     @Override
     public final ByteBuffer nioBuffer(int index, int length) {
         checkIndex(index, length);
+        // memory 中的开始位置
         index = idx(index);
+        // 创建 ByteBuffer 对象
         ByteBuffer buf =  ByteBuffer.wrap(memory, index, length);
+        // slice 创建 [position, limit] 子缓冲区
         return buf.slice();
     }
 
@@ -334,6 +347,7 @@ class PooledHeapByteBuf extends PooledByteBuf<byte[]> {
         throw new UnsupportedOperationException();
     }
 
+    //获得临时 ByteBuf 对象( tmpNioBuf )
     @Override
     protected final ByteBuffer newInternalNioBuffer(byte[] memory) {
         return ByteBuffer.wrap(memory);

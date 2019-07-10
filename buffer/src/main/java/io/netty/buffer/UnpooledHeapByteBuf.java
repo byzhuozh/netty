@@ -35,10 +35,25 @@ import static io.netty.util.internal.ObjectUtil.checkNotNull;
  * {@link UnpooledByteBufAllocator#heapBuffer(int, int)}, {@link Unpooled#buffer(int)} and
  * {@link Unpooled#wrappedBuffer(byte[])} instead of calling the constructor explicitly.
  */
+
+/**
+ * 非池化 ByteBuf 实现类
+ */
 public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
+    /**
+     * ByteBuf 分配器对象
+     */
     private final ByteBufAllocator alloc;
+
+    /**
+     * 字节数组
+     */
     byte[] array;
+
+    /**
+     * 临时 ByteBuff 对象
+     */
     private ByteBuffer tmpNioBuf;
 
     /**
@@ -48,6 +63,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
      * @param maxCapacity the max capacity of the underlying byte array
      */
     public UnpooledHeapByteBuf(ByteBufAllocator alloc, int initialCapacity, int maxCapacity) {
+        // 设置最大容量
         super(maxCapacity);
 
         checkNotNull(alloc, "alloc");
@@ -58,7 +74,11 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         }
 
         this.alloc = alloc;
+
+        // 创建并设置字节数组
         setArray(allocateArray(initialCapacity));
+
+        // 设置读写索引
         setIndex(0, 0);
     }
 
@@ -123,24 +143,41 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
         int oldCapacity = array.length;
         byte[] oldArray = array;
+
+        // 扩容
         if (newCapacity > oldCapacity) {
+            // 创建新数组
             byte[] newArray = allocateArray(newCapacity);
+            // 复制【全部】数据到新数组
             System.arraycopy(oldArray, 0, newArray, 0, oldArray.length);
+            // 设置数组
             setArray(newArray);
+            // 释放老数组
             freeArray(oldArray);
+
+        // 缩容
         } else if (newCapacity < oldCapacity) {
+            // 创建新数组
             byte[] newArray = allocateArray(newCapacity);
             int readerIndex = readerIndex();
             if (readerIndex < newCapacity) {
+                // 如果写索引超过新容量，需要重置下，设置为最大容量。否则就越界了
                 int writerIndex = writerIndex();
                 if (writerIndex > newCapacity) {
                     writerIndex(writerIndex = newCapacity);
                 }
+                // 只复制【读取段】数据到新数组
                 System.arraycopy(oldArray, readerIndex, newArray, readerIndex, writerIndex - readerIndex);
             } else {
+                // 因为读索引超过新容量，所以写索引超过新容量
+                // 如果读写索引都超过新容量，需要重置下，都设置为最大容量。否则就越界了
                 setIndex(newCapacity, newCapacity);
+                // 这里要注意下，老的数据，相当于不进行复制，因为已经读取完了
             }
+
+            // 设置数组
             setArray(newArray);
+            // 释放老数组
             freeArray(oldArray);
         }
         return this;
@@ -549,9 +586,14 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return tmpNioBuf;
     }
 
+    /**
+     * 当引用计数为 0 时，调用该方法，进行内存回收
+     */
     @Override
     protected void deallocate() {
+        // 释放老数组
         freeArray(array);
+        // 设置为空字节数组
         array = EmptyArrays.EMPTY_BYTES;
     }
 

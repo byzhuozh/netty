@@ -27,6 +27,9 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.ScatteringByteChannel;
 
+/**
+ * 实现 PooledByteBuf 抽象类，基于 ByteBuffer 的可重用 ByteBuf 实现类。所以，泛型 T 为 ByteBuffer
+ */
 final class PooledDirectByteBuf extends PooledByteBuf<ByteBuffer> {
 
     private static final Recycler<PooledDirectByteBuf> RECYCLER = new Recycler<PooledDirectByteBuf>() {
@@ -37,7 +40,9 @@ final class PooledDirectByteBuf extends PooledByteBuf<ByteBuffer> {
     };
 
     static PooledDirectByteBuf newInstance(int maxCapacity) {
+        // 从 Recycler 的对象池中获得 PooledDirectByteBuf 对象
         PooledDirectByteBuf buf = RECYCLER.get();
+        // 重置 PooledDirectByteBuf 的属性
         buf.reuse(maxCapacity);
         return buf;
     }
@@ -46,11 +51,18 @@ final class PooledDirectByteBuf extends PooledByteBuf<ByteBuffer> {
         super(recyclerHandle, maxCapacity);
     }
 
+    /**
+     * 获得临时 ByteBuf 对象( tmpNioBuf )
+     */
     @Override
     protected ByteBuffer newInternalNioBuffer(ByteBuffer memory) {
-        return memory.duplicate();
+        return memory.duplicate();  // 浅拷贝，复制一个 ByteBuffer 对象，共享里面的数据
     }
 
+    /**
+     * 是否是直接内存
+     * @return
+     */
     @Override
     public boolean isDirect() {
         return true;
@@ -87,6 +99,7 @@ final class PooledDirectByteBuf extends PooledByteBuf<ByteBuffer> {
                (memory.get(index + 2) & 0xff) << 16;
     }
 
+    // 读取
     @Override
     protected int _getInt(int index) {
         return memory.getInt(idx(index));
@@ -234,9 +247,11 @@ final class PooledDirectByteBuf extends PooledByteBuf<ByteBuffer> {
             return 0;
         }
 
+        // 获得临时 ByteBuf 对象
         ByteBuffer tmpBuf = internal ? internalNioBuffer() : memory.duplicate();
         index = idx(index);
         tmpBuf.clear().position(index).limit(index + length);
+        // 写入到 FileChannel 中
         return out.write(tmpBuf, position);
     }
 
@@ -378,45 +393,73 @@ final class PooledDirectByteBuf extends PooledByteBuf<ByteBuffer> {
     @Override
     public int setBytes(int index, FileChannel in, long position, int length) throws IOException {
         checkIndex(index, length);
+        // 获得临时 ByteBuf 对象
         ByteBuffer tmpBuf = internalNioBuffer();
         index = idx(index);
         tmpBuf.clear().position(index).limit(index + length);
         try {
+            // 写入临时 ByteBuf 对象
             return in.read(tmpBuf, position);
         } catch (ClosedChannelException ignored) {
             return -1;
         }
     }
 
+    /**
+     * 复制指定范围的数据到新创建的 Direct ByteBuf 对象【深拷贝】
+     */
     @Override
     public ByteBuf copy(int index, int length) {
+        // 校验索引
         checkIndex(index, length);
+        // 创建一个 Direct ByteBuf 对象
         ByteBuf copy = alloc().directBuffer(length, maxCapacity());
+        // 写入数据
         copy.writeBytes(this, index, length);
         return copy;
     }
 
+    /**
+     * 返回 ByteBuf 包含 ByteBuffer 数量为 1
+     * @return
+     */
     @Override
     public int nioBufferCount() {
         return 1;
     }
 
+    /**
+     * 返回 ByteBuf 指定范围包含的 ByteBuffer 对象( 共享 )
+     */
     @Override
     public ByteBuffer nioBuffer(int index, int length) {
         checkIndex(index, length);
+        // memory 中的开始位置
         index = idx(index);
+        // duplicate 复制一个 ByteBuffer 对象，共享数据
+        // position + limit 设置位置和大小限制
+        // slice 创建 [position, limit] 子缓冲区，共享数据
         return ((ByteBuffer) memory.duplicate().position(index).limit(index + length)).slice();
     }
 
+    /**
+     * 返回 ByteBuf 指定范围内包含的 ByteBuffer 数组( 共享 )
+     */
     @Override
     public ByteBuffer[] nioBuffers(int index, int length) {
         return new ByteBuffer[] { nioBuffer(index, length) };
     }
 
+    /**
+     * 返回 ByteBuf 指定范围内的 ByteBuffer 对象( 共享 )
+     */
     @Override
     public ByteBuffer internalNioBuffer(int index, int length) {
         checkIndex(index, length);
+        // memory 中的开始位置
         index = idx(index);
+        // clear 标记清空（不会清理数据）
+        // position + limit 设置位置和大小限制
         return (ByteBuffer) internalNioBuffer().clear().position(index).limit(index + length);
     }
 

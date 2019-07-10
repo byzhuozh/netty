@@ -28,6 +28,9 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.ScatteringByteChannel;
 
+/**
+ * 实现 PooledByteBuf 抽象类，基于 ByteBuffer + Unsafe 的可重用 ByteBuf 实现类。所以，泛型 T 为 ByteBuffer
+ */
 final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
     private static final Recycler<PooledUnsafeDirectByteBuf> RECYCLER = new Recycler<PooledUnsafeDirectByteBuf>() {
         @Override
@@ -42,6 +45,7 @@ final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
         return buf;
     }
 
+    //初始化内存地址
     private long memoryAddress;
 
     private PooledUnsafeDirectByteBuf(Recycler.Handle<PooledUnsafeDirectByteBuf> recyclerHandle, int maxCapacity) {
@@ -51,17 +55,22 @@ final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
     @Override
     void init(PoolChunk<ByteBuffer> chunk, long handle, int offset, int length, int maxLength,
               PoolThreadCache cache) {
+        // 调用父初始化方法
         super.init(chunk, handle, offset, length, maxLength, cache);
+        // 初始化内存地址
         initMemoryAddress();
     }
 
     @Override
     void initUnpooled(PoolChunk<ByteBuffer> chunk, int length) {
+        // 调用父初始化方法
         super.initUnpooled(chunk, length);
+        // 初始化内存地址
         initMemoryAddress();
     }
 
     private void initMemoryAddress() {
+        // 获得 ByteBuffer 对象的起始内存地址
         memoryAddress = PlatformDependent.directBufferAddress(memory) + offset;
     }
 
@@ -304,6 +313,9 @@ final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
         }
     }
 
+    /**
+     * 复制指定范围的数据到新创建的 Direct ByteBuf 对象
+     */
     @Override
     public ByteBuf copy(int index, int length) {
         return UnsafeByteBufUtil.copy(this, addr(index), index, length);
@@ -363,6 +375,10 @@ final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
         return memoryAddress + index;
     }
 
+    /**
+     * 创建 SwappedByteBuf 对象
+     * @return
+     */
     @Override
     protected SwappedByteBuf newSwappedByteBuf() {
         if (PlatformDependent.isUnaligned()) {
