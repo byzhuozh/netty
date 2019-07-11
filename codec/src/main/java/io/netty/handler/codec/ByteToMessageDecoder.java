@@ -290,27 +290,36 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
 
     @Override
     public final void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+        // 状态处于 STATE_CALLING_CHILD_DECODE 时，标记状态为 STATE_HANDLER_REMOVED_PENDING
         if (decodeState == STATE_CALLING_CHILD_DECODE) {
             decodeState = STATE_HANDLER_REMOVED_PENDING;
-            return;
+            return; // 返回！！！！结合 `#decodeRemovalReentryProtection(...)` 方法，一起看。
         }
         ByteBuf buf = cumulation;
         if (buf != null) {
             // Directly set this to null so we are sure we not access it in any other method here anymore.
+            // 置空 cumulation
             cumulation = null;
 
+            // 有可读字节
             int readable = buf.readableBytes();
             if (readable > 0) {
+                // 读取剩余字节，并释放 buf
                 ByteBuf bytes = buf.readBytes(readable);
                 buf.release();
+                // 触发 Channel Read 到下一个节点
                 ctx.fireChannelRead(bytes);
-            } else {
+            } else { // 无可读字节
+                // 释放 buf
                 buf.release();
             }
 
+            // 置空 numReads
             numReads = 0;
+            // 触发 Channel ReadComplete 到下一个节点
             ctx.fireChannelReadComplete();
         }
+        // 执行移除逻辑
         handlerRemoved0(ctx);
     }
 
@@ -397,14 +406,18 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
 
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+        // 重置 numReads
         numReads = 0;
+        // 释放部分的已读
         discardSomeReadBytes();
+        // 未解码到消息，并且未开启自动读取，则再次发起读取，期望读取到更多数据，以便解码到消息
         if (decodeWasNull) {
-            decodeWasNull = false;
+            decodeWasNull = false;  // 重置 decodeWasNull
             if (!ctx.channel().config().isAutoRead()) {
                 ctx.read();
             }
         }
+        // 触发 Channel ReadComplete 事件到下一个节点
         ctx.fireChannelReadComplete();
     }
 
@@ -424,6 +437,11 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
         }
     }
 
+    /**
+     * 通道处于未激活( Inactive )，解码完剩余的消息，并释放相关资源
+     * @param ctx
+     * @throws Exception
+     */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         channelInputClosed(ctx, true);
@@ -431,18 +449,22 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        // 处理 ChannelInputShutdownEvent 事件，即 Channel 关闭读取。
         if (evt instanceof ChannelInputShutdownEvent) {
             // The decodeLast method is invoked when a channelInactive event is encountered.
             // This method is responsible for ending requests in some situations and must be called
             // when the input has been shutdown.
             channelInputClosed(ctx, false);
         }
+        // 继续传播 evt 到下一个节点
         super.userEventTriggered(ctx, evt);
     }
 
     private void channelInputClosed(ChannelHandlerContext ctx, boolean callChannelInactive) throws Exception {
+        // 创建 CodecOutputList 对象
         CodecOutputList out = CodecOutputList.newInstance();
         try {
+            // 当 Channel 读取关闭时，执行解码剩余消息的逻辑
             channelInputClosed(ctx, out);
         } catch (DecoderException e) {
             throw e;
@@ -450,20 +472,25 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
             throw new DecoderException(e);
         } finally {
             try {
+                // 释放 cumulation
                 if (cumulation != null) {
                     cumulation.release();
                     cumulation = null;
                 }
                 int size = out.size();
+                // 触发 Channel Read 事件到下一个节点。可能是多条消息
                 fireChannelRead(ctx, out, size);
+                // 如果有解码到消息，则触发 Channel ReadComplete 事件到下一个节点
                 if (size > 0) {
                     // Something was read, call fireChannelReadComplete()
                     ctx.fireChannelReadComplete();
                 }
+                // 如果方法调用来源是 `#channelInactive(...)` ，则触发 Channel Inactive 事件到下一个节点
                 if (callChannelInactive) {
                     ctx.fireChannelInactive();
                 }
             } finally {
+                // 回收 CodecOutputList 对象
                 // Recycle in all cases
                 out.recycle();
             }
@@ -476,9 +503,12 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      */
     void channelInputClosed(ChannelHandlerContext ctx, List<Object> out) throws Exception {
         if (cumulation != null) {
+            // 执行解码
             callDecode(ctx, cumulation, out);
+            // 最后一次，执行解码
             decodeLast(ctx, cumulation, out);
         } else {
+            // 最后一次，执行解码
             decodeLast(ctx, Unpooled.EMPTY_BUFFER, out);
         }
     }
@@ -490,7 +520,6 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * @param ctx           the {@link ChannelHandlerContext} which this {@link ByteToMessageDecoder} belongs to
      * @param in            the {@link ByteBuf} from which to read data
      * @param out           the {@link List} to which decoded messages should be added
-     *
      *
      * 执行解码。而解码的结果，会添加到 out 数组中
      */
@@ -589,13 +618,18 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      */
     final void decodeRemovalReentryProtection(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
             throws Exception {
+        // 设置状态为 STATE_CALLING_CHILD_DECODE
         decodeState = STATE_CALLING_CHILD_DECODE;
         try {
+            // 执行解码
             decode(ctx, in, out);
         } finally {
+            // 判断是否准备移除
             boolean removePending = decodeState == STATE_HANDLER_REMOVED_PENDING;
+            // 设置状态为 STATE_INIT
             decodeState = STATE_INIT;
             if (removePending) {
+                // 移除当前 Handler
                 handlerRemoved(ctx);
             }
         }
