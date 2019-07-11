@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>io.netty.handler.timeout.TimeoutException</OriginalElement>
+  <nodes>
+    <node x="192.0" y="324.0">io.netty.handler.timeout.WriteTimeoutException</node>
+    <node x="110.0" y="162.0">io.netty.channel.ChannelException</node>
+    <node x="0.0" y="324.0">io.netty.handler.timeout.ReadTimeoutException</node>
+    <node x="109.5" y="243.0">io.netty.handler.timeout.TimeoutException</node>
+    <node x="109.5" y="81.0">java.lang.RuntimeException</node>
+    <node x="128.5" y="0.0">java.io.Serializable</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="io.netty.handler.timeout.TimeoutException" target="io.netty.channel.ChannelException">
+      <point x="0.0" y="-15.5" />
+      <point x="0.0" y="15.5" />
+    </edge>
+    <edge source="java.lang.RuntimeException" target="java.io.Serializable">
+      <point x="0.0" y="-15.5" />
+      <point x="0.0" y="15.5" />
+    </edge>
+    <edge source="io.netty.handler.timeout.WriteTimeoutException" target="io.netty.handler.timeout.TimeoutException">
+      <point x="0.0" y="-15.5" />
+      <point x="279.0" y="299.0" />
+      <point x="219.0" y="299.0" />
+      <point x="36.5" y="15.5" />
+    </edge>
+    <edge source="io.netty.handler.timeout.ReadTimeoutException" target="io.netty.handler.timeout.TimeoutException">
+      <point x="0.0" y="-15.5" />
+      <point x="86.0" y="299.0" />
+      <point x="146.0" y="299.0" />
+      <point x="-36.5" y="15.5" />
+    </edge>
+    <edge source="io.netty.channel.ChannelException" target="java.lang.RuntimeException">
+      <point x="0.0" y="-15.5" />
+      <point x="0.0" y="15.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="73.0" y="247.0" />
+  <SelectedNodes />
+  <Categories />
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+

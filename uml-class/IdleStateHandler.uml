@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>io.netty.handler.timeout.IdleStateHandler</OriginalElement>
+  <nodes>
+    <node x="157.51041666666666" y="243.0">io.netty.channel.ChannelDuplexHandler</node>
+    <node x="175.01041666666666" y="324.0">io.netty.handler.timeout.IdleStateHandler</node>
+    <node x="386.625" y="243.0">io.netty.handler.timeout.WriteTimeoutHandler</node>
+    <node x="383.75" y="81.0">io.netty.channel.ChannelHandlerAdapter</node>
+    <node x="277.75" y="162.0">io.netty.channel.ChannelOutboundHandler</node>
+    <node x="58.375" y="405.0">io.netty.handler.timeout.ReadTimeoutHandler</node>
+    <node x="34.75" y="162.0">io.netty.channel.ChannelInboundHandlerAdapter</node>
+    <node x="0.0" y="81.0">io.netty.channel.ChannelInboundHandler</node>
+    <node x="305.25" y="0.0">io.netty.channel.ChannelHandler</node>
+    <node x="241.375" y="405.0">io.netty.handler.timeout.IdleStateHandlerTest.TestableIdleStateHandler</node>
+  </nodes>
+  <notes />
+  <edges>
+    <edge source="io.netty.channel.ChannelOutboundHandler" target="io.netty.channel.ChannelHandler">
+      <point x="0.0" y="-15.5" />
+      <point x="0.0" y="15.5" />
+    </edge>
+    <edge source="io.netty.handler.timeout.WriteTimeoutHandler" target="io.netty.channel.ChannelHandlerAdapter">
+      <point x="41.25" y="-15.5" />
+      <point x="510.375" y="218.0" />
+      <point x="517.25" y="218.0" />
+      <point x="44.5" y="15.5" />
+    </edge>
+    <edge source="io.netty.handler.timeout.ReadTimeoutHandler" target="io.netty.handler.timeout.IdleStateHandler">
+      <point x="0.0" y="-15.5" />
+      <point x="139.875" y="380.0" />
+      <point x="209.26041666666666" y="380.0" />
+      <point x="-34.25" y="15.5" />
+    </edge>
+    <edge source="io.netty.handler.timeout.IdleStateHandlerTest.TestableIdleStateHandler" target="io.netty.handler.timeout.IdleStateHandler">
+      <point x="0.0" y="-15.5" />
+      <point x="331.875" y="380.0" />
+      <point x="277.76041666666663" y="380.0" />
+      <point x="34.25" y="15.5" />
+    </edge>
+    <edge source="io.netty.channel.ChannelInboundHandler" target="io.netty.channel.ChannelHandler">
+      <point x="0.0" y="-15.5" />
+      <point x="90.5" y="56.0" />
+      <point x="327.9166666666667" y="56.0" />
+      <point x="-45.33333333333334" y="15.5" />
+    </edge>
+    <edge source="io.netty.handler.timeout.WriteTimeoutHandler" target="io.netty.channel.ChannelOutboundHandler">
+      <point x="-41.25" y="-15.5" />
+      <point x="427.875" y="218.0" />
+      <point x="421.0" y="218.0" />
+      <point x="47.75" y="15.5" />
+    </edge>
+    <edge source="io.netty.channel.ChannelInboundHandlerAdapter" target="io.netty.channel.ChannelHandlerAdapter">
+      <point x="55.74999999999997" y="-15.5" />
+      <point x="201.99999999999997" y="137.0" />
+      <point x="428.25" y="137.0" />
+      <point x="-44.5" y="15.5" />
+    </edge>
+    <edge source="io.netty.channel.ChannelInboundHandlerAdapter" target="io.netty.channel.ChannelInboundHandler">
+      <point x="-55.75000000000003" y="-15.5" />
+      <point x="0.0" y="15.5" />
+    </edge>
+    <edge source="io.netty.channel.ChannelDuplexHandler" target="io.netty.channel.ChannelInboundHandlerAdapter">
+      <point x="-43.0" y="-15.5" />
+      <point x="200.51041666666666" y="218.0" />
+      <point x="146.25" y="218.0" />
+      <point x="0.0" y="15.5" />
+    </edge>
+    <edge source="io.netty.channel.ChannelHandlerAdapter" target="io.netty.channel.ChannelHandler">
+      <point x="0.0" y="-15.5" />
+      <point x="472.75" y="56.0" />
+      <point x="418.58333333333337" y="56.0" />
+      <point x="45.33333333333337" y="15.5" />
+    </edge>
+    <edge source="io.netty.handler.timeout.IdleStateHandler" target="io.netty.channel.ChannelDuplexHandler">
+      <point x="0.0" y="-15.5" />
+      <point x="0.0" y="15.5" />
+    </edge>
+    <edge source="io.netty.channel.ChannelDuplexHandler" target="io.netty.channel.ChannelOutboundHandler">
+      <point x="43.0" y="-15.5" />
+      <point x="286.51041666666663" y="218.0" />
+      <point x="325.5" y="218.0" />
+      <point x="-47.75" y="15.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="295.0" y="203.0" />
+  <SelectedNodes />
+  <Categories />
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>private</VISIBILITY>
+</Diagram>
+

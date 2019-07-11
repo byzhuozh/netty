@@ -42,7 +42,7 @@ public class IdleStateHandlerTest {
     @Test
     public void testReaderIdle() throws Exception {
         TestableIdleStateHandler idleStateHandler = new TestableIdleStateHandler(
-                false, 1L, 0L, 0L, TimeUnit.SECONDS);
+                false, 5L, 0L, 0L, TimeUnit.SECONDS);
 
         // We start with one FIRST_READER_IDLE_STATE_EVENT, followed by an infinite number of READER_IDLE_STATE_EVENTs
         anyIdle(idleStateHandler, IdleStateEvent.FIRST_READER_IDLE_STATE_EVENT,
