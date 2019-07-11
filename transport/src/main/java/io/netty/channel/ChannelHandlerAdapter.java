@@ -22,10 +22,13 @@ import java.util.Map;
 
 /**
  * Skeleton implementation of a {@link ChannelHandler}.
+ *
+ * 适配器模式
  */
 public abstract class ChannelHandlerAdapter implements ChannelHandler {
 
     // Not using volatile because it's used only for a sanity check.
+    // 是否已经初始化
     boolean added;
 
     /**

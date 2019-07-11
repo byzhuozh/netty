@@ -23,6 +23,8 @@ import java.net.SocketAddress;
  *
  * It is a good starting point if your {@link ChannelHandler} implementation needs to intercept operations and also
  * state updates.
+ *
+ * 支持对 Inbound 和 Outbound 事件的 Adaptive 处理，所以命名上带有“Duplex”( 双重 )
  */
 public class ChannelDuplexHandler extends ChannelInboundHandlerAdapter implements ChannelOutboundHandler {
 
