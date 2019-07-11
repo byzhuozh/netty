@@ -45,8 +45,11 @@ import java.util.concurrent.TimeUnit;
  * <li><tt>getTrafficCounter</tt> allows you to have access to the TrafficCounter and so to stop
  * or start the monitoring, to change the checkInterval directly, or to have access to its values.</li>
  * </ul>
+ *
+ * 流量整型处理器【主动调整流量输出速率的措施】
  */
 public abstract class AbstractTrafficShapingHandler extends ChannelDuplexHandler {
+
     private static final InternalLogger logger =
             InternalLoggerFactory.getInstance(AbstractTrafficShapingHandler.class);
     /**
@@ -73,6 +76,8 @@ public abstract class AbstractTrafficShapingHandler extends ChannelDuplexHandler
 
     /**
      * Traffic Counter
+     *
+     * 对读和写的字节进行计数以用于限制流量
      */
     protected TrafficCounter trafficCounter;
 
@@ -235,6 +240,7 @@ public abstract class AbstractTrafficShapingHandler extends ChannelDuplexHandler
      */
     public void configure(long newWriteLimit, long newReadLimit,
             long newCheckInterval) {
+        // 配置新的写限制、读限制、检测间期
         configure(newWriteLimit, newReadLimit);
         configure(newCheckInterval);
     }
@@ -418,6 +424,8 @@ public abstract class AbstractTrafficShapingHandler extends ChannelDuplexHandler
 
     /**
      * Class to implement setReadable at fix time
+     *
+     * 重启读操作的定时任务
      */
     static final class ReopenReadTimerTask implements Runnable {
         final ChannelHandlerContext ctx;
