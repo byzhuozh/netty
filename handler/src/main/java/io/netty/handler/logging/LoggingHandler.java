@@ -35,16 +35,31 @@ import static io.netty.util.internal.StringUtil.NEWLINE;
 /**
  * A {@link ChannelHandler} that logs all events using a logging framework.
  * By default, all events are logged at <tt>DEBUG</tt> level.
+ *
+ * 日志处理器，对 Inbound/Outbound 事件进行日志的记录
  */
 @Sharable
 @SuppressWarnings({ "StringConcatenationInsideStringBufferAppend", "StringBufferReplaceableByString" })
 public class LoggingHandler extends ChannelDuplexHandler {
 
+    /**
+     * 默认 {@link #level} 日志级别
+     */
     private static final LogLevel DEFAULT_LEVEL = LogLevel.DEBUG;
 
+    /**
+     * Netty 内部 Logger 对象
+     */
     protected final InternalLogger logger;
+
+    /**
+     * Netty 内部 LogLevel 级别
+     */
     protected final InternalLogLevel internalLevel;
 
+    /**
+     * 配置的 LogLevel 级别
+     */
     private final LogLevel level;
 
     /**
@@ -95,6 +110,7 @@ public class LoggingHandler extends ChannelDuplexHandler {
             throw new NullPointerException("level");
         }
 
+        // 获得 logger
         logger = InternalLoggerFactory.getInstance(clazz);
         this.level = level;
         internalLevel = level.toInternalLevel();
