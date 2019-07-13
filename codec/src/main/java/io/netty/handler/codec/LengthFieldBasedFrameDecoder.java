@@ -180,6 +180,8 @@ import io.netty.handler.codec.serialization.ObjectDecoder;
  * +------+--------+------+----------------+      +------+----------------+
  * </pre>
  * @see LengthFieldPrepender
+ *
+ * 基于消息头指定消息长度进行粘包拆包处理的
  */
 public class LengthFieldBasedFrameDecoder extends ByteToMessageDecoder {
 
