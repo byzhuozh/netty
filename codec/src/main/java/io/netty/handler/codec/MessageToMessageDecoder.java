@@ -48,9 +48,14 @@ import java.util.List;
  * are of type {@link ReferenceCounted}. This is needed as the {@link MessageToMessageDecoder} will call
  * {@link ReferenceCounted#release()} on decoded messages.
  *
+ * 将消息解码成另一种消息
+ *
  */
 public abstract class MessageToMessageDecoder<I> extends ChannelInboundHandlerAdapter {
 
+    /**
+     * 类型匹配器
+     */
     private final TypeParameterMatcher matcher;
 
     /**
@@ -79,17 +84,22 @@ public abstract class MessageToMessageDecoder<I> extends ChannelInboundHandlerAd
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        // 创建 CodecOutputList 对象
         CodecOutputList out = CodecOutputList.newInstance();
         try {
+            // 判断是否为匹配的消息
             if (acceptInboundMessage(msg)) {
                 @SuppressWarnings("unchecked")
                 I cast = (I) msg;
                 try {
+                    // 将消息解码成另外一个消息
                     decode(ctx, cast, out);
                 } finally {
+                    // 释放 cast 原消息
                     ReferenceCountUtil.release(cast);
                 }
             } else {
+                // 不匹配，添加到 out
                 out.add(msg);
             }
         } catch (DecoderException e) {
@@ -97,10 +107,12 @@ public abstract class MessageToMessageDecoder<I> extends ChannelInboundHandlerAd
         } catch (Exception e) {
             throw new DecoderException(e);
         } finally {
+            // 遍历 out ，触发 Channel Read 事件到 pipeline 中
             int size = out.size();
             for (int i = 0; i < size; i ++) {
                 ctx.fireChannelRead(out.getUnsafe(i));
             }
+            // 回收 CodecOutputList 对象
             out.recycle();
         }
     }

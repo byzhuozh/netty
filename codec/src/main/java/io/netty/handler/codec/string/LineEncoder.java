@@ -49,6 +49,8 @@ import java.util.List;
  *     ch.write("Did you say '" + msg + "'?");
  * }
  * </pre>
+ *
+ * 基于指定行分隔符的 FrameEncoder 实现类
  */
 @Sharable
 public class LineEncoder extends MessageToMessageEncoder<CharSequence> {

@@ -49,6 +49,8 @@ import java.util.List;
  * + 0x000E | "HELLO, WORLD" |
  * +--------+----------------+
  * </pre>
+ *
+ * 基于基于消息头指定消息长度的 FrameEncoder 实现类
  */
 @Sharable
 public class LengthFieldPrepender extends MessageToMessageEncoder<ByteBuf> {

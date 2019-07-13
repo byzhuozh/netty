@@ -51,9 +51,14 @@ import java.util.List;
  * Be aware that you need to call {@link ReferenceCounted#retain()} on messages that are just passed through if they
  * are of type {@link ReferenceCounted}. This is needed as the {@link MessageToMessageCodec} will call
  * {@link ReferenceCounted#release()} on encoded / decoded messages.
+ *
+ * 组合 MessageToMessageEncoder 和 MessageToMessageDecoder 的功能，从而实现编解码的 Codec 抽象类
  */
 public abstract class MessageToMessageCodec<INBOUND_IN, OUTBOUND_IN> extends ChannelDuplexHandler {
 
+    /**
+     * Encoder 对象
+     */
     private final MessageToMessageEncoder<Object> encoder = new MessageToMessageEncoder<Object>() {
 
         @Override
@@ -68,6 +73,9 @@ public abstract class MessageToMessageCodec<INBOUND_IN, OUTBOUND_IN> extends Cha
         }
     };
 
+    /**
+     * Decoder 对象
+     */
     private final MessageToMessageDecoder<Object> decoder = new MessageToMessageDecoder<Object>() {
 
         @Override
@@ -82,7 +90,14 @@ public abstract class MessageToMessageCodec<INBOUND_IN, OUTBOUND_IN> extends Cha
         }
     };
 
+    /**
+     * Decoder 的类型匹配器
+     */
     private final TypeParameterMatcher inboundMsgMatcher;
+
+    /**
+     * Encoder 的类型匹配器
+     */
     private final TypeParameterMatcher outboundMsgMatcher;
 
     /**
