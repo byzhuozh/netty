@@ -119,54 +119,74 @@ public class LineBasedFrameDecoder extends ByteToMessageDecoder {
      * @param   buffer          the {@link ByteBuf} from which to read data
      * @return  frame           the {@link ByteBuf} which represent the frame or {@code null} if no frame could
      *                          be created.
+     * 执行解码
      */
     protected Object decode(ChannelHandlerContext ctx, ByteBuf buffer) throws Exception {
+        // 获得换行符的位置
         final int eol = findEndOfLine(buffer);
-        if (!discarding) {
-            if (eol >= 0) {
+        if (!discarding) {  // 未处于废弃模式
+            if (eol >= 0) { // 找到
                 final ByteBuf frame;
-                final int length = eol - buffer.readerIndex();
-                final int delimLength = buffer.getByte(eol) == '\r'? 2 : 1;
+                final int length = eol - buffer.readerIndex();  // 读取长度
+                final int delimLength = buffer.getByte(eol) == '\r'? 2 : 1;     // 分隔符的长度。2 为 `\r\n` ，1 为 `\n
 
+                // 超过最大长度
                 if (length > maxLength) {
+                    // 设置新的读取位置
                     buffer.readerIndex(eol + delimLength);
+                    // 触发 Exception 到下一个节点
                     fail(ctx, length);
+                    // 返回 null ，即未解码到消息
                     return null;
                 }
 
+                // 解码出一条消息
                 if (stripDelimiter) {
                     frame = buffer.readRetainedSlice(length);
-                    buffer.skipBytes(delimLength);
+                    buffer.skipBytes(delimLength);  // 忽略换行符
                 } else {
                     frame = buffer.readRetainedSlice(length + delimLength);
                 }
 
+                // 返回解码的消息
                 return frame;
-            } else {
+            } else {    // 未找到
                 final int length = buffer.readableBytes();
+                // 超过最大长度
                 if (length > maxLength) {
+                    // 记录 discardedBytes
                     discardedBytes = length;
+                    // 跳到写入位置
                     buffer.readerIndex(buffer.writerIndex());
+                    // 标记 discarding 为废弃模式
                     discarding = true;
+                    // 重置 offset
                     offset = 0;
+                    // 如果快速失败，则触发 Exception 到下一个节点
                     if (failFast) {
                         fail(ctx, "over " + discardedBytes);
                     }
                 }
                 return null;
             }
-        } else {
-            if (eol >= 0) {
-                final int length = discardedBytes + eol - buffer.readerIndex();
-                final int delimLength = buffer.getByte(eol) == '\r'? 2 : 1;
+        } else {    // 处于废弃模式
+            if (eol >= 0) { // 找到
+                final int length = discardedBytes + eol - buffer.readerIndex(); // 读取长度
+                final int delimLength = buffer.getByte(eol) == '\r'? 2 : 1; // 分隔符的长度。2 为 `\r\n` ，1 为 `\n`
+                // 设置新的读取位置
                 buffer.readerIndex(eol + delimLength);
+                // 重置 discardedBytes
                 discardedBytes = 0;
+                // 设置 discarding 不为废弃模式
                 discarding = false;
+                // 如果不为快速失败，则触发 Exception 到下一个节点
                 if (!failFast) {
                     fail(ctx, length);
                 }
             } else {
+                // 未找到
                 discardedBytes += buffer.readableBytes();
+                // 跳到写入位置
                 buffer.readerIndex(buffer.writerIndex());
             }
             return null;
@@ -190,12 +210,16 @@ public class LineBasedFrameDecoder extends ByteToMessageDecoder {
     private int findEndOfLine(final ByteBuf buffer) {
         int totalLength = buffer.readableBytes();
         int i = buffer.forEachByte(buffer.readerIndex() + offset, totalLength - offset, ByteProcessor.FIND_LF);
+        // 找到换行符
         if (i >= 0) {
+            // 重置 offset
             offset = 0;
+            // 如果前一个字节位 `\r` ，说明找到的是 `\n` ，所以需要 -1 ，因为寻找的是首个换行符的位置
             if (i > 0 && buffer.getByte(i - 1) == '\r') {
                 i--;
             }
         } else {
+            // 未找到，记录 offset
             offset = totalLength;
         }
         return i;
