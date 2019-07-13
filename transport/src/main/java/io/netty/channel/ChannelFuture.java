@@ -161,6 +161,9 @@ import java.util.concurrent.TimeUnit;
  *     // Connection established successfully
  * }
  * </pre>
+ *
+ * ChannelFuture接口相比于Future只扩展了一个方法channel()用于取得关联的Channel对象
+ *
  */
 public interface ChannelFuture extends Future<Void> {
 

@@ -26,7 +26,7 @@ public interface Promise<V> extends Future<V> {
      *
      * If it is success or failed already it will throw an {@link IllegalStateException}.
      *
-     * 设置future执行结果为成功
+     * 标记异步操作结果为成功，如果已被设置（不管成功还是失败）则抛出异常IllegalStateException
      */
     Promise<V> setSuccess(V result);
 

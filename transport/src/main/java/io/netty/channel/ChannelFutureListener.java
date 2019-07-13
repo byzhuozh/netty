@@ -41,7 +41,7 @@ public interface ChannelFutureListener extends GenericFutureListener<ChannelFutu
     ChannelFutureListener CLOSE = new ChannelFutureListener() {
         @Override
         public void operationComplete(ChannelFuture future) {
-            future.channel().close();
+            future.channel().close();   // 操作失败时关闭Channel
         }
     };
 
@@ -54,7 +54,7 @@ public interface ChannelFutureListener extends GenericFutureListener<ChannelFutu
         public void operationComplete(ChannelFuture future) {
             System.out.println("监听>>>失败关闭 >>> { "  + future.toString() + " }");
             if (!future.isSuccess()) {
-                future.channel().close(); //
+                future.channel().close(); //操作完成时关闭Channel
             }
         }
     };
@@ -67,6 +67,7 @@ public interface ChannelFutureListener extends GenericFutureListener<ChannelFutu
         @Override
         public void operationComplete(ChannelFuture future) {
             if (!future.isSuccess()) {
+                // 操作失败时触发一个ExceptionCaught事件
                 future.channel().pipeline().fireExceptionCaught(future.cause());
             }
         }

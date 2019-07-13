@@ -34,17 +34,28 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(DefaultPromise.class);
     private static final InternalLogger rejectedExecutionLogger =
             InternalLoggerFactory.getInstance(DefaultPromise.class.getName() + ".rejectedExecution");
+
+    // 可以嵌套的Listener的最大层数，可见最大值为8
     private static final int MAX_LISTENER_STACK_DEPTH = Math.min(8,
             SystemPropertyUtil.getInt("io.netty.defaultPromise.maxListenerStackDepth", 8));
+
+    // result字段由使用RESULT_UPDATER更新
     @SuppressWarnings("rawtypes")
     private static final AtomicReferenceFieldUpdater<DefaultPromise, Object> RESULT_UPDATER =
             AtomicReferenceFieldUpdater.newUpdater(DefaultPromise.class, Object.class, "result");
+
+    // 异步操作成功且结果为null时设置为改值
     private static final Object SUCCESS = new Object();
+
+    // 异步操作不可取消
     private static final Object UNCANCELLABLE = new Object();
+
+    // 异步操作失败时保存异常原因
     private static final CauseHolder CANCELLATION_CAUSE_HOLDER = new CauseHolder(ThrowableUtil.unknownStackTrace(
             new CancellationException(), DefaultPromise.class, "cancel(...)"));
 
     /**
+     * 异步操作结果
      * result 的状态取值：
      *      null - 未完成
      *      CANCELLATION_CAUSE_HOLDER -被取消
@@ -53,7 +64,9 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
      *      业务处理调用setFailure时包装Throws的CauseHolder
      */
     private volatile Object result;     // 结果值
-    private final EventExecutor executor;   // 事件执行器
+
+    // 执行listener操作的执行器
+    private final EventExecutor executor;
     /**
      * One or more listeners. Can be a {@link GenericFutureListener} or a {@link DefaultFutureListeners}.
      * If {@code null}, it means either 1) no listeners were added yet or 2) all listeners were notified.
@@ -66,6 +79,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
     /**
      * Threading - synchronized(this). We are required to hold the monitor to use Java's underlying wait()/notifyAll().
      */
+    // 阻塞等待该结果的线程数
     private short waiters;
 
     /**
@@ -181,11 +195,11 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         checkNotNull(listener, "listener");
 
         synchronized (this) {
-            addListener0(listener);
+            addListener0(listener);     // 保证多线程情况下只有一个线程执行添加操作
         }
 
         if (isDone()) {  // 判断当前任务是否已经执行完毕
-            notifyListeners();   // 直接触发刚刚加入的监听事件
+            notifyListeners();   // 异步操作已经完成通知监听者
         }
 
         return this;
@@ -387,7 +401,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
     @Override
     public Promise<V> sync() throws InterruptedException {
         await();
-        rethrowIfFailed();
+        rethrowIfFailed();  // 异步操作失败抛出异常
         return this;
     }
 
@@ -469,16 +483,18 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
 
     private void notifyListeners() {
         EventExecutor executor = executor();
-        // addListener和setSuccess、setSuccess 都会调用notifyListeners()，
+        // addListener和 setSuccess、setSuccess 都会调用 notifyListeners()，
         // 如果和当前 Promise 内的线程池当前执行的线程是同一个线程，则放在线程池中执行
-        if (executor.inEventLoop()) {
+        if (executor.inEventLoop()) {     //执行线程为指定线程
             final InternalThreadLocalMap threadLocals = InternalThreadLocalMap.get();
-            final int stackDepth = threadLocals.futureListenerStackDepth();
+            final int stackDepth = threadLocals.futureListenerStackDepth(); // 嵌套层数
             if (stackDepth < MAX_LISTENER_STACK_DEPTH) {
+                // 执行前增加嵌套层数
                 threadLocals.setFutureListenerStackDepth(stackDepth + 1);
                 try {
                     notifyListenersNow();
                 } finally {
+                    // 执行完毕，无论如何都要回滚嵌套层数
                     threadLocals.setFutureListenerStackDepth(stackDepth);
                 }
                 return;
@@ -526,9 +542,11 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
 
     private void notifyListenersNow() {
         Object listeners;
+        // 此时外部线程可能会执行添加Listener操作，所以需要同步
         synchronized (this) {
             // Only proceed if there are listeners to notify and we are not already notifying listeners.
             if (notifyingListeners || this.listeners == null) {
+                // 正在通知或已没有监听者（外部线程删除）直接返回
                 return;
             }
             notifyingListeners = true;
@@ -536,18 +554,20 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
             this.listeners = null;
         }
         for (;;) {
-            if (listeners instanceof DefaultFutureListeners) {
+            if (listeners instanceof DefaultFutureListeners) {  // 通知单个
                 notifyListeners0((DefaultFutureListeners) listeners);
-            } else {
+            } else {    // 通知多个（遍历集合调用单个）
                 notifyListener0(this, (GenericFutureListener<?>) listeners);
             }
             synchronized (this) {
+                // 执行完毕且外部线程没有再添加监听者
                 if (this.listeners == null) {
                     // Nothing can throw from within this method, so setting notifyingListeners back to false does not
                     // need to be in a finally block.
                     notifyingListeners = false;
                     return;
                 }
+                // 外部线程添加了监听者继续执行
                 listeners = this.listeners;
                 this.listeners = null;
             }
@@ -575,7 +595,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
 
     private void addListener0(GenericFutureListener<? extends Future<? super V>> listener) {
         if (listeners == null) {
-            listeners = listener;
+            listeners = listener;    // 只有一个
         } else if (listeners instanceof DefaultFutureListeners) {
             //如果监听多于1个，会创建DefaultFutureListeners对象将回调方法保存在一个数组中
             ((DefaultFutureListeners) listeners).add(listener);
@@ -610,15 +630,17 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
     }
 
     private boolean setValue0(Object objResult) {
+        // 只有结果为null或者UNCANCELLABLE时才可设置且只可以设置一次
         if (RESULT_UPDATER.compareAndSet(this, null, objResult) ||
             RESULT_UPDATER.compareAndSet(this, UNCANCELLABLE, objResult)) {
-            checkNotifyWaiters();
+            checkNotifyWaiters();   // 通知等待的线程
             return true;
         }
         return false;
     }
 
     private synchronized void checkNotifyWaiters() {
+        // 确实有等待的线程才notifyAll
         if (waiters > 0) {
             notifyAll();
         }

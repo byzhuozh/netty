@@ -94,7 +94,7 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      * Waits for this future until it is done, and rethrows the cause of the failure if this future
      * failed.
      *
-     * 等待future done
+     * 等待 future done
      */
     Future<V> sync() throws InterruptedException;
 
@@ -112,7 +112,7 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      * @throws InterruptedException
      *         if the current thread was interrupted
      *
-     *  等待future完成
+     *  阻塞直到异步操作完成
      */
     Future<V> await() throws InterruptedException;
 
@@ -185,7 +185,7 @@ public interface Future<V> extends java.util.concurrent.Future<V> {
      *
      * If the cancellation was successful it will fail the future with an {@link CancellationException}.
      *
-     *  如果成功取消，future会失败，导致CancellationException
+     *  如果成功取消，future会失败，导致 CancellationException
      */
     @Override
     boolean cancel(boolean mayInterruptIfRunning);
