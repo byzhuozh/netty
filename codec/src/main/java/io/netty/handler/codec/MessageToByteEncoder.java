@@ -42,10 +42,19 @@ import io.netty.util.internal.TypeParameterMatcher;
  *         }
  *     }
  * </pre>
+ *
+ * 负责将消息编码成字节，支持匹配指定类型的消息
  */
 public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdapter {
 
+    /**
+     * 类型匹配器
+     */
     private final TypeParameterMatcher matcher;
+
+    /**
+     * 是否偏向使用 Direct 内存
+     */
     private final boolean preferDirect;
 
     /**
@@ -70,6 +79,7 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
      *                              {@link ByteBuf}, which is backed by an byte array.
      */
     protected MessageToByteEncoder(boolean preferDirect) {
+        // 获得 matcher
         matcher = TypeParameterMatcher.find(this, MessageToByteEncoder.class, "I");
         this.preferDirect = preferDirect;
     }
@@ -90,6 +100,8 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
     /**
      * Returns {@code true} if the given message should be handled. If {@code false} it will be passed to the next
      * {@link ChannelOutboundHandler} in the {@link ChannelPipeline}.
+     *
+     * 判断消息是否匹配
      */
     public boolean acceptOutboundMessage(Object msg) throws Exception {
         return matcher.match(msg);
@@ -99,24 +111,34 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         ByteBuf buf = null;
         try {
+            // 判断是否为匹配的消息
             if (acceptOutboundMessage(msg)) {
                 @SuppressWarnings("unchecked")
                 I cast = (I) msg;
+                // 申请 buf
                 buf = allocateBuffer(ctx, cast, preferDirect);
                 try {
+                    // 编码
                     encode(ctx, cast, buf);
                 } finally {
+                    // 释放 msg
                     ReferenceCountUtil.release(cast);
                 }
 
+                // buf 可读，说明有编码到数据
                 if (buf.isReadable()) {
+                    // 写入 buf 到下一个节点
                     ctx.write(buf, promise);
                 } else {
+                    // 释放 buf
                     buf.release();
+                    // 写入 EMPTY_BUFFER 到下一个节点，为了 promise 的回调
                     ctx.write(Unpooled.EMPTY_BUFFER, promise);
                 }
+                // 置空 buf
                 buf = null;
             } else {
+                // 提交 write 事件给下一个节点
                 ctx.write(msg, promise);
             }
         } catch (EncoderException e) {
@@ -137,8 +159,10 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
     protected ByteBuf allocateBuffer(ChannelHandlerContext ctx, @SuppressWarnings("unused") I msg,
                                boolean preferDirect) throws Exception {
         if (preferDirect) {
+            //分配堆外内存
             return ctx.alloc().ioBuffer();
         } else {
+            //分配堆内存
             return ctx.alloc().heapBuffer();
         }
     }

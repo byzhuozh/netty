@@ -56,6 +56,8 @@ import java.util.List;
  * </pre>
  *
  * 基于指定消息边界方式进行粘包拆包处理的
+ *
+ * 与 LineBasedFrameDecoder 换行符方式差别在于 可以自定义边界符
  */
 public class DelimiterBasedFrameDecoder extends ByteToMessageDecoder {
 
