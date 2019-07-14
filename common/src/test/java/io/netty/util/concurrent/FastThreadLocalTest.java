@@ -36,6 +36,16 @@ public class FastThreadLocalTest {
         assertThat(FastThreadLocal.size(), is(0));
     }
 
+    @Test
+    public void cxsTest(){
+        FastThreadLocal<String> fastThreadLocal = new FastThreadLocal<String>();
+        fastThreadLocal.set("byzhuozh");
+        System.out.println(fastThreadLocal.get());
+//        fastThreadLocal.remove();
+//        System.out.println(fastThreadLocal.get());
+
+    }
+
     @Test(timeout = 10000)
     public void testRemoveAll() throws Exception {
         final AtomicBoolean removed = new AtomicBoolean();

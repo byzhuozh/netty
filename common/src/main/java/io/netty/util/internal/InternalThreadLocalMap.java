@@ -44,6 +44,7 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
     private static final int STRING_BUILDER_INITIAL_SIZE;
     private static final int STRING_BUILDER_MAX_SIZE;
 
+    //缺省值
     public static final Object UNSET = new Object();
 
     private BitSet cleanerFlags;
@@ -67,6 +68,8 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
 
     public static InternalThreadLocalMap get() {
         Thread thread = Thread.currentThread();
+        // 当前线程是否是 Netty 的 FastThreadLocalThread 来调用不同的方法，
+        // 一个是 fast 的，一个 是 slow 的（不是 Netty 的线程就是 slow 的）
         if (thread instanceof FastThreadLocalThread) {
             return fastGet((FastThreadLocalThread) thread);
         } else {
@@ -76,12 +79,14 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
 
     private static InternalThreadLocalMap fastGet(FastThreadLocalThread thread) {
         InternalThreadLocalMap threadLocalMap = thread.threadLocalMap();
+        // 如果为空的话，则进行初始化，和 jdk 自带的 ThreadLocal 类似
         if (threadLocalMap == null) {
             thread.setThreadLocalMap(threadLocalMap = new InternalThreadLocalMap());
         }
         return threadLocalMap;
     }
 
+    // 采用 jdk 自带的 ThreadLocal
     private static InternalThreadLocalMap slowGet() {
         ThreadLocal<InternalThreadLocalMap> slowThreadLocalMap = UnpaddedInternalThreadLocalMap.slowThreadLocalMap;
         InternalThreadLocalMap ret = slowThreadLocalMap.get();
@@ -126,6 +131,7 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
         super(newIndexedVariableTable());
     }
 
+    //初始化数组长度
     private static Object[] newIndexedVariableTable() {
         Object[] array = new Object[32];
         Arrays.fill(array, UNSET);
@@ -289,22 +295,32 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
 
     /**
      * @return {@code true} if and only if a new thread-local variable has been created
+     *
+     * 返回 true的情况： 1.扩容，2.没扩容，但是插入的对象所在的槽，该槽之前的值的 UNSET
      */
     public boolean setIndexedVariable(int index, Object value) {
-        Object[] lookup = indexedVariables;
+        Object[] lookup = indexedVariables;  // 默认长度 32
         if (index < lookup.length) {
             Object oldValue = lookup[index];
             lookup[index] = value;
             return oldValue == UNSET;
         } else {
+            // 扩容，并在 index 位置添加 value
             expandIndexedVariableTableAndSet(index, value);
             return true;
         }
     }
 
+    /**
+     * 扩容
+     * @param index
+     * @param value
+     */
     private void expandIndexedVariableTableAndSet(int index, Object value) {
         Object[] oldArray = indexedVariables;
         final int oldCapacity = oldArray.length;
+
+        //和 1.8 HashMap 一样，两倍了扩容
         int newCapacity = index;
         newCapacity |= newCapacity >>>  1;
         newCapacity |= newCapacity >>>  2;
