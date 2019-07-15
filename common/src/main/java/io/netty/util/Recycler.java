@@ -35,11 +35,17 @@ import static java.lang.Math.min;
  * Light-weight object pool based on a thread-local stack.
  *
  * @param <T> the type of the pooled object
+ *
+ * Recycler 用来实现对象池, 其中对应堆内存和直接内存的池化实现分别是 PooledHeapByteBuf 和 PooledDirectByteBuf
  */
 public abstract class Recycler<T> {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(Recycler.class);
 
+    /**
+     * 表示一个不需要回收的包装对象，用于在禁止使用Recycler功能时进行占位的功能
+     * 仅当 io.netty.recycler.maxCapacityPerThread<=0 时用到
+     */
     @SuppressWarnings("rawtypes")
     private static final Handle NOOP_HANDLE = new Handle() {
         @Override
@@ -47,14 +53,64 @@ public abstract class Recycler<T> {
             // NOOP
         }
     };
+
+    /**
+     * 唯一ID生成器
+     * 用在两处：
+     *  1、当前线程ID
+     *  2、WeakOrderQueue 的 id
+     */
     private static final AtomicInteger ID_GENERATOR = new AtomicInteger(Integer.MIN_VALUE);
+
+    /**
+     * static变量, 生成并获取一个唯一id.
+     * 用于pushNow()中的item.recycleId 和 item.lastRecycleId 的设定
+     */
     private static final int OWN_THREAD_ID = ID_GENERATOR.getAndIncrement();
+
+    /**
+     * 每个Stack默认的最大容量
+     * 注意：
+     *  1、当io.netty.recycler.maxCapacityPerThread<=0时，禁用回收功能（在netty中，只有=0可以禁用，<0默认使用4k）
+     *  2、Recycler中有且只有两个地方存储DefaultHandle对象（Stack和Link），
+     * 最多可存储MAX_CAPACITY_PER_THREAD + 最大可共享容量 = 4k + 4k/2 = 6k
+     *
+     * 实际上，在netty中，Recycler提供了两种设置属性的方式
+     *  第一种：-Dio.netty.recycler.ratio等jvm启动参数方式
+     *  第二种：Recycler(int maxCapacityPerThread)构造器传入方式
+     */
     private static final int DEFAULT_INITIAL_MAX_CAPACITY_PER_THREAD = 4 * 1024; // Use 4k instances as default.
     private static final int DEFAULT_MAX_CAPACITY_PER_THREAD;
+
+    /**
+     * 每个Stack默认的初始容量，默认为256
+     * 后续根据需要进行扩容，直到<=MAX_CAPACITY_PER_THREAD
+     */
     private static final int INITIAL_CAPACITY;
+
+    /**
+     * 最大可共享的容量因子。
+     * 最大可共享的容量 = maxCapacity / maxSharedCapacityFactor，maxSharedCapacityFactor默认为2
+     */
     private static final int MAX_SHARED_CAPACITY_FACTOR;
+
+    /**
+     * 每个线程可拥有多少个WeakOrderQueue，默认为2*cpu核数
+     * 实际上就是当前线程的Map<Stack<?>, WeakOrderQueue>的size最大值
+     */
     private static final int MAX_DELAYED_QUEUES_PER_THREAD;
+
+    /**
+     * WeakOrderQueue中的Link中的数组DefaultHandle<?>[] elements容量，默认为16，
+     * 当一个Link中的DefaultHandle元素达到16个时，会新创建一个Link进行存储，这些Link组成链表，当然
+     * 所有的Link加起来的容量要<=最大可共享容量。
+     */
     private static final int LINK_CAPACITY;
+
+    /**
+     * 回收因子，默认为8。
+     * 即默认每8个对象，允许回收一次，直接扔掉7个，可以让recycler的容量缓慢的增大，避免爆发式的请求
+     */
     private static final int RATIO;
 
     static {
@@ -73,17 +129,30 @@ public abstract class Recycler<T> {
                 SystemPropertyUtil.getInt("io.netty.recycler.maxSharedCapacityFactor",
                         2));
 
+        /**
+         * 每个线程可拥有多少个WeakOrderQueue，默认为2*cpu核数
+         * 实际上就是当前线程的Map<Stack<?>, WeakOrderQueue>的size最大值
+         */
         MAX_DELAYED_QUEUES_PER_THREAD = max(0,
                 SystemPropertyUtil.getInt("io.netty.recycler.maxDelayedQueuesPerThread",
                         // We use the same value as default EventLoop number
                         NettyRuntime.availableProcessors() * 2));
 
+        /**
+         * WeakOrderQueue中的Link中的数组DefaultHandle<?>[] elements容量，默认为16，
+         * 当一个Link中的DefaultHandle元素达到16个时，会新创建一个Link进行存储，这些Link组成链表，当然
+         * 所有的Link加起来的容量要<=最大可共享容量。
+         */
         LINK_CAPACITY = safeFindNextPositivePowerOfTwo(
                 max(SystemPropertyUtil.getInt("io.netty.recycler.linkCapacity", 16), 16));
 
         // By default we allow one push to a Recycler for each 8th try on handles that were never recycled before.
         // This should help to slowly increase the capacity of the recycler while not be too sensitive to allocation
         // bursts.
+        /**
+         * 回收因子，默认为8。
+         * 即默认每8个对象，允许回收一次，直接扔掉7个，可以让recycler的容量缓慢的增大，避免爆发式的请求
+         */
         RATIO = safeFindNextPositivePowerOfTwo(SystemPropertyUtil.getInt("io.netty.recycler.ratio", 8));
 
         if (logger.isDebugEnabled()) {
@@ -100,14 +169,26 @@ public abstract class Recycler<T> {
             }
         }
 
+        /**
+         * 每个Stack默认的初始容量，默认为256
+         * 后续根据需要进行扩容，直到<=MAX_CAPACITY_PER_THREAD
+         */
         INITIAL_CAPACITY = min(DEFAULT_MAX_CAPACITY_PER_THREAD, 256);
     }
 
     private final int maxCapacityPerThread;
     private final int maxSharedCapacityFactor;
+
+    // 用来控制对象回收的频率，并不是每次对象都会被回收的，通过ratioMask来控制对象回收的比率
     private final int ratioMask;
     private final int maxDelayedQueuesPerThread;
 
+
+    /**
+     * 1、每个Recycler对象都有一个threadLocal
+     * 原因：因为一个Stack要指明存储的对象泛型T，而不同的Recycler<T>对象的T可能不同，所以此处的FastThreadLocal是对象级别
+     * 2、每条线程都有一个Stack<T>对象
+     */
     private final FastThreadLocal<Stack<T>> threadLocal = new FastThreadLocal<Stack<T>>() {
         @Override
         protected Stack<T> initialValue() {
@@ -192,18 +273,33 @@ public abstract class Recycler<T> {
         return threadLocal.get().size;
     }
 
+    /**
+     * 创建一个对象
+     * 1、由子类进行复写，所以使用protected修饰
+     * 2、传入Handle对象，对创建出来的对象进行回收操作
+     */
     protected abstract T newObject(Handle<T> handle);
 
+    /**
+     * 提供对象的回收功能，由子类进行复写
+     * 目前该接口只有两个实现：NOOP_HANDLE和DefaultHandle
+     */
     public interface Handle<T> {
         void recycle(T object);
     }
 
+    /**
+     * DefaultHandle:对象的包装类，在Recycler中缓存的对象都会包装成DefaultHandle类
+     *
+     * @param <T>
+     */
     static final class DefaultHandle<T> implements Handle<T> {
         private int lastRecycledId;
         private int recycleId;
 
         boolean hasBeenRecycled;
 
+        // Stack:存储本线程回收的对象
         private Stack<?> stack;
         private Object value;
 
@@ -211,15 +307,26 @@ public abstract class Recycler<T> {
             this.stack = stack;
         }
 
+        /**
+         * 回收
+         * @param object
+         */
         @Override
         public void recycle(Object object) {
             if (object != value) {
                 throw new IllegalArgumentException("object does not belong to handle");
             }
+            //回收的时候，实际是添加到栈里边
             stack.push(this);
         }
     }
 
+    /**
+     * 1、每个Recycler类（而不是每一个Recycler对象）都有一个DELAYED_RECYCLED
+     * 原因：可以根据一个Stack<T>对象唯一的找到一个WeakOrderQueue对象，所以此处不需要每个对象建立一个DELAYED_RECYCLED
+     * 2、由于DELAYED_RECYCLED是一个类变量，所以需要包容多个T，此处泛型需要使用?
+     * 3、WeakHashMap：当Stack没有强引用可达时，整个Entry{Stack<?>, WeakOrderQueue}都会加入相应的弱引用队列等待回收
+     */
     private static final FastThreadLocal<Map<Stack<?>, WeakOrderQueue>> DELAYED_RECYCLED =
             new FastThreadLocal<Map<Stack<?>, WeakOrderQueue>>() {
         @Override
@@ -230,10 +337,13 @@ public abstract class Recycler<T> {
 
     // a queue that makes only moderate guarantees about visibility: items are seen in the correct order,
     // but we aren't absolutely guaranteed to ever see anything at all, thereby keeping the queue cheap to maintain
+    // WeakOrderQueue:存储其它线程回收到本线程stack的对象
     private static final class WeakOrderQueue {
 
         static final WeakOrderQueue DUMMY = new WeakOrderQueue();
 
+        // Link: WeakOrderQueue中包含1个Link链表，回收对象存储在链表某个Link节点里，
+        // 当Link节点存储的回收对象满了时会新建1个Link放在Link链表尾
         // Let Link extend AtomicInteger for intrinsics. The Link itself will be used as writerIndex.
         @SuppressWarnings("serial")
         static final class Link extends AtomicInteger {
@@ -454,8 +564,12 @@ public abstract class Recycler<T> {
         // it in a timely manner).
         final WeakReference<Thread> threadRef;
         final AtomicInteger availableSharedCapacity;
+
+        // 线程1创建的对象，可能被线程2释放，线程2释放的时候会创建一个WeakOrderQueue，WeakOrderQueue中就存放着线程1中创建的对，
+        // 到线程2中去释放，后续分析再详细讲解。这个参数就表示线程1创建的对象，能够释放的线程数有多少
         final int maxDelayedQueues;
 
+        // 表示Handle数组的最大的大小
         private final int maxCapacity;
         private final int ratioMask;
         private DefaultHandle<?>[] elements;
@@ -583,15 +697,25 @@ public abstract class Recycler<T> {
             Thread currentThread = Thread.currentThread();
             if (threadRef.get() == currentThread) {
                 // The current Thread is the thread that belongs to the Stack, we can try to push the object now.
+                /**
+                 * 如果该stack就是本线程的stack，那么直接把DefaultHandle放到该stack的数组里
+                 */
                 pushNow(item);
             } else {
                 // The current Thread is not the one that belongs to the Stack
                 // (or the Thread that belonged to the Stack was collected already), we need to signal that the push
                 // happens later.
+                /**
+                 * 如果该stack不是本线程的stack，那么把该DefaultHandle放到该stack的WeakOrderQueue中
+                 */
                 pushLater(item, currentThread);
             }
         }
 
+        /**
+         * 直接把DefaultHandle放到stack的数组里，如果数组满了那么扩展该数组为当前2倍大小
+         * @param item
+         */
         private void pushNow(DefaultHandle<?> item) {
             if ((item.recycleId | item.lastRecycledId) != 0) {
                 throw new IllegalStateException("recycled already");
@@ -615,14 +739,25 @@ public abstract class Recycler<T> {
             // we don't want to have a ref to the queue as the value in our weak map
             // so we null it out; to ensure there are no races with restoring it later
             // we impose a memory ordering here (no-op on x86)
+            /**
+             * Recycler有1个stack->WeakOrderQueue映射，每个stack会映射到1个WeakOrderQueue，这个WeakOrderQueue是该stack关联的其它线程WeakOrderQueue链表的head WeakOrderQueue。
+             * 当其它线程回收对象到该stack时会创建1个WeakOrderQueue中并加到stack的WeakOrderQueue链表中。
+             */
             Map<Stack<?>, WeakOrderQueue> delayedRecycled = DELAYED_RECYCLED.get();
             WeakOrderQueue queue = delayedRecycled.get(this);
             if (queue == null) {
+                /**
+                 * 如果delayedRecycled满了那么将1个伪造的WeakOrderQueue（DUMMY）放到delayedRecycled中，并丢弃该对象（DefaultHandle）
+                 */
                 if (delayedRecycled.size() >= maxDelayedQueues) {
                     // Add a dummy queue so we know we should drop the object
                     delayedRecycled.put(this, WeakOrderQueue.DUMMY);
                     return;
                 }
+
+                /**
+                 * 创建1个WeakOrderQueue
+                 */
                 // Check if we already reached the maximum number of delayed queues and if we can allocate at all.
                 if ((queue = WeakOrderQueue.allocate(this, thread)) == null) {
                     // drop object
@@ -634,6 +769,9 @@ public abstract class Recycler<T> {
                 return;
             }
 
+            /**
+             * 将对象放入到该stack对应的WeakOrderQueue中
+             */
             queue.add(item);
         }
 

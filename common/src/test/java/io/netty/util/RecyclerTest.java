@@ -15,6 +15,7 @@
 */
 package io.netty.util;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Random;
@@ -25,6 +26,91 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.Assert.*;
 
 public class RecyclerTest {
+
+    //------------------ test demo start  ------------------------
+    private static final Recycler<User> userRecycler = new Recycler<User>() {
+        @Override
+        protected User newObject(Handle<User> handle) {
+            return new User(handle);
+        }
+    };
+
+    static final class User {
+        private String name;
+        private Recycler.Handle<User> handle;
+
+        public User(Recycler.Handle<User> handle) {
+            this.handle = handle;
+        }
+
+        public void recycle() {
+            handle.recycle(this);
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return "User{" +
+                    "name='" + name + '\'' +
+                    ", handle=" + handle +
+                    '}';
+        }
+    }
+
+    @Test
+    public void testGetAndRecycleAtSameThread() {
+        // 1、从回收池获取对象
+        User user1 = userRecycler.get();
+        // 2、设置对象并使用
+        user1.setName("hello,java");
+        System.out.println(user1);
+
+        // 3、对象恢复出厂设置
+        user1.setName(null);
+
+        // 4、回收对象到对象池
+        user1.recycle();
+
+        // 5、从回收池获取对象
+        User user2 = userRecycler.get();
+        System.out.println(user1.equals(user2));    // true
+        Assert.assertSame(user1, user2);
+    }
+
+
+    @Test
+    public void testGetAndRecycleAtDifferentThread() throws InterruptedException {
+        // 1、从回收池获取对象
+        User user1 = userRecycler.get();
+        // 2、设置对象并使用
+        user1.setName("hello,java");
+
+        Thread thread = new Thread(()->{
+            System.out.println(user1);
+            // 3、对象恢复出厂设置
+            user1.setName(null);
+            // 4、回收对象到对象池
+            user1.recycle();
+        });
+
+        thread.start();
+        thread.join();
+
+        // 5、从回收池获取对象
+        User user2 = userRecycler.get();
+        System.out.println(user1.equals(user2));    // true
+        Assert.assertSame(user1, user2);
+    }
+
+
+    //------------------ test demo ending  ------------------------
 
     private static Recycler<HandledObject> newRecycler(int max) {
         return new Recycler<HandledObject>(max) {
@@ -86,8 +172,10 @@ public class RecyclerTest {
         Recycler<HandledObject> recycler = newRecycler(1024);
         HandledObject object = recycler.get();
         object.recycle();
+
         HandledObject object2 = recycler.get();
-        assertSame(object, object2);
+        assertSame(object, object2);    // 两个对象相等
+
         object2.recycle();
     }
 
