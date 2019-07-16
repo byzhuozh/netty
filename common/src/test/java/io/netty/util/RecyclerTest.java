@@ -92,6 +92,7 @@ public class RecyclerTest {
         // 2、设置对象并使用
         user1.setName("hello,java");
 
+        //不用的线程进行回收处理
         Thread thread = new Thread(()->{
             System.out.println(user1);
             // 3、对象恢复出厂设置

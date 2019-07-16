@@ -43,7 +43,8 @@ public abstract class Recycler<T> {
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(Recycler.class);
 
     /**
-     * 表示一个不需要回收的包装对象，用于在禁止使用Recycler功能时进行占位的功能
+     * 不做回收处理：
+     *      表示一个不需要回收的包装对象，用于在禁止使用Recycler功能时进行占位的功能
      * 仅当 io.netty.recycler.maxCapacityPerThread<=0 时用到
      */
     @SuppressWarnings("rawtypes")
@@ -194,12 +195,13 @@ public abstract class Recycler<T> {
 
     /**
      * 1、每个Recycler对象都有一个threadLocal
-     * 原因：因为一个Stack要指明存储的对象泛型T，而不同的Recycler<T>对象的T可能不同，所以此处的FastThreadLocal是对象级别
+     *    原因：因为一个Stack要指明存储的对象泛型T，而不同的Recycler<T>对象的T可能不同，所以此处的FastThreadLocal是对象级别
      * 2、每条线程都有一个Stack<T>对象
      */
     private final FastThreadLocal<Stack<T>> threadLocal = new FastThreadLocal<Stack<T>>() {
         @Override
         protected Stack<T> initialValue() {
+            //初始化每个线程对应的 stack
             return new Stack<T>(Recycler.this, Thread.currentThread(), maxCapacityPerThread, maxSharedCapacityFactor,
                     ratioMask, maxDelayedQueuesPerThread);
         }
@@ -247,33 +249,35 @@ public abstract class Recycler<T> {
     @SuppressWarnings("unchecked")
     public final T get() {
         /**
-         * 0、如果maxCapacityPerThread == 0，禁止回收功能
-         * 创建一个对象，其Recycler.Handle<User> handle属性为NOOP_HANDLE，该对象的recycle(Object object)不做任何事情，即不做回收
+         * 如果maxCapacityPerThread == 0，禁用回收功能
+         * 每次都是重建一个对象，其 Recycler.Handle<User> handle 属性为 NOOP_HANDLE，
+         * 该对象的 recycle(Object object) 不做任何事情，即不做回收
          */
         if (maxCapacityPerThread == 0) {
             return newObject((Handle<T>) NOOP_HANDLE);
         }
 
         /**
-         * 1、获取当前线程的Stack<T>对象
+         * 获取当前线程的Stack<T>对象
          */
         Stack<T> stack = threadLocal.get();
 
         /**
-         * 2、从Stack<T>对象中获取DefaultHandle<T>
+         * 从Stack<T>对象中获取DefaultHandle<T>
          */
         DefaultHandle<T> handle = stack.pop();
         if (handle == null) {
             /**
-             * 3、 新建一个DefaultHandle对象 -> 然后新建T对象 -> 存储到DefaultHandle对象
+             * 新建一个DefaultHandle对象 -> 然后新建T对象 -> 存储到DefaultHandle对象
              * 此处会发现一个DefaultHandle对象对应一个Object对象，二者相互包含。
              */
             handle = stack.newHandle();
+            //对象和处理器之间相互包含
             handle.value = newObject(handle);
         }
 
         /**
-         * 4、返回value
+         * 返回value
          */
         return (T) handle.value;
     }
@@ -346,11 +350,11 @@ public abstract class Recycler<T> {
          */
         boolean hasBeenRecycled;
 
-        // Stack:存储本线程回收的对象
+        //Stack 容器实际管理的是Handle，Handle也会持有该Stack，用于对象回收使用
         private Stack<?> stack;
 
         /**
-         * 真正的对象，value与Handle一一对应
+         * handle 管理的实际对象，value 与 Handle一一对应
          */
         private Object value;
 
@@ -364,14 +368,12 @@ public abstract class Recycler<T> {
          */
         @Override
         public void recycle(Object object) {
-            // 防护性判断
+            // 防护性判断，回收的对象必须和处理器中的对象保持相同
             if (object != value) {
                 throw new IllegalArgumentException("object does not belong to handle");
             }
 
-            /**
-             * 回收对象，this指的是当前的 DefaultHandle对象
-             */
+            // 回收对象，this指的是当前的 DefaultHandle对象
             stack.push(this);
         }
     }
@@ -770,7 +772,9 @@ public abstract class Recycler<T> {
         Stack(Recycler<T> parent, Thread thread, int maxCapacity, int maxSharedCapacityFactor,
               int ratioMask, int maxDelayedQueues) {
             this.parent = parent;
+            //threadRef用于记录该Stack被哪个Thread持有
             threadRef = new WeakReference<Thread>(thread);
+            //该对象池最大可持有的对象数量
             this.maxCapacity = maxCapacity;
             availableSharedCapacity = new AtomicInteger(max(maxCapacity / maxSharedCapacityFactor, LINK_CAPACITY));
             elements = new DefaultHandle[min(INITIAL_CAPACITY, maxCapacity)];
@@ -907,21 +911,17 @@ public abstract class Recycler<T> {
             return success;
         }
 
+        /**
+         * 须判断是否是 stack 对应的线程做的回收
+         * @param item
+         */
         void push(DefaultHandle<?> item) {
             Thread currentThread = Thread.currentThread();
             if (threadRef.get() == currentThread) {
-                // The current Thread is the thread that belongs to the Stack, we can try to push the object now.
-                /**
-                 * 如果该stack就是本线程的stack，那么直接把DefaultHandle放到该stack的数组里
-                 */
+                //如果该stack就是本线程的stack，那么直接把DefaultHandle放到该stack的数组里
                 pushNow(item);
             } else {
-                // The current Thread is not the one that belongs to the Stack
-                // (or the Thread that belonged to the Stack was collected already), we need to signal that the push
-                // happens later.
-                /**
-                 * 如果该stack不是本线程的stack，那么把该DefaultHandle放到该stack的WeakOrderQueue中
-                 */
+                //如果该stack不是本线程的stack，那么把该DefaultHandle放到该stack的WeakOrderQueue中
                 pushLater(item, currentThread);
             }
         }
@@ -932,27 +932,30 @@ public abstract class Recycler<T> {
          */
         private void pushNow(DefaultHandle<?> item) {
             // (item.recycleId | item.lastRecycleId) != 0 等价于 item.recycleId!=0 && item.lastRecycleId!=0
-            // 当item开始创建时item.recycleId==0 && item.lastRecycleId==0
-            // 当item被recycle时，item.recycleId==x，item.lastRecycleId==y 进行赋值
-            // 当item被poll之后， item.recycleId = item.lastRecycleId = 0
-            // 所以当item.recycleId 和 item.lastRecycleId 任何一个不为0，则表示回收过
+            //   当item开始创建时item.recycleId==0 && item.lastRecycleId==0
+            //   当item被recycle时，item.recycleId==x，item.lastRecycleId==y 进行赋值
+            //   当item被poll之后， item.recycleId = item.lastRecycleId = 0
+            //   所以当item.recycleId 和 item.lastRecycleId 任何一个不为0，则表示回收过
             if ((item.recycleId | item.lastRecycledId) != 0) {
                 throw new IllegalStateException("recycled already");
             }
             item.recycleId = item.lastRecycledId = OWN_THREAD_ID;
 
             int size = this.size;
+
+            //如果当前Stack已经超过了其定义的最大容量，则不进行归还操作
+            //删除该Handle
             if (size >= maxCapacity || dropHandle(item)) {
                 // Hit the maximum capacity or should drop - drop the possibly youngest object.
                 return;
             }
 
-            // stack中的elements扩容两倍，复制元素，将新数组赋值给stack.elements
+            // stack 中的 elements 扩容两倍，复制元素，将新数组赋值给stack.elements
             if (size == elements.length) {
                 elements = Arrays.copyOf(elements, min(size << 1, maxCapacity));
             }
 
-            // 放置元素
+            //实际归还，也就是把Handle放入数组中，然后计数器加一
             elements[size] = item;
             this.size = size + 1;
         }
@@ -965,15 +968,20 @@ public abstract class Recycler<T> {
             // so we null it out; to ensure there are no races with restoring it later
             // we impose a memory ordering here (no-op on x86)
             /**
-             * Recycler有1个stack->WeakOrderQueue映射，每个stack会映射到1个WeakOrderQueue，这个WeakOrderQueue是该stack关联的其它线程WeakOrderQueue链表的head WeakOrderQueue。
+             * Recycler 有1个 stack->WeakOrderQueue 映射，每个stack会映射到1个WeakOrderQueue，
+             * 这个WeakOrderQueue是该stack关联的其它线程WeakOrderQueue链表的head WeakOrderQueue。
              * 当其它线程回收对象到该stack时会创建1个WeakOrderQueue中并加到stack的WeakOrderQueue链表中。
              */
+            //每个线程都在自己的ThreadLocal中为每个其他所有者线程维护了一个 WeakOrderQueue，归还从该所有者线程对象池取出的对象时
+            //其实就是将归还的对象方法到该队列中
             Map<Stack<?>, WeakOrderQueue> delayedRecycled = DELAYED_RECYCLED.get();
             WeakOrderQueue queue = delayedRecycled.get(this);
+
+            //WeakOrderQueue 队列为空
             if (queue == null) {
                 /**
-                 * 如果delayedRecycled满了那么将1个伪造的WeakOrderQueue（DUMMY）放到delayedRecycled中，并丢弃该对象（DefaultHandle）
-                 */
+                 * 如果delayedRecycled满了，那么将1个伪造的WeakOrderQueue（DUMMY）放到delayedRecycled中，并丢弃该对象（DefaultHandle）
+                 * */
                 if (delayedRecycled.size() >= maxDelayedQueues) {
                     // Add a dummy queue so we know we should drop the object
                     delayedRecycled.put(this, WeakOrderQueue.DUMMY);
@@ -988,8 +996,11 @@ public abstract class Recycler<T> {
                     // drop object
                     return;
                 }
+
+
                 delayedRecycled.put(this, queue);
             } else if (queue == WeakOrderQueue.DUMMY) {
+                //如果取出的队列为上面初始化的DUMMY队列，则直接放回
                 // drop object
                 return;
             }
@@ -1022,6 +1033,7 @@ public abstract class Recycler<T> {
             return false;
         }
 
+        // 新建一个处理器
         DefaultHandle<T> newHandle() {
             return new DefaultHandle<T>(this);
         }
