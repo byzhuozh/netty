@@ -53,7 +53,7 @@ public final class EchoServer {
         // 创建两个 EventLoopGroup 对象
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);    // 创建 boss 线程组 用于服务端接受客户端的连接
         EventLoopGroup workerGroup = new NioEventLoopGroup();   // 创建 worker 线程组 用于进行 SocketChannel 的数据读写
-        // 创建 EchoServerHandler 对象
+        // 创建 ServerHandler 对象
         final EchoServerHandler serverHandler = new EchoServerHandler();
         try {
             // 创建 ServerBootstrap 对象

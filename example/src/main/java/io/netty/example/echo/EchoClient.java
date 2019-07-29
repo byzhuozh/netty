@@ -42,7 +42,7 @@ public final class EchoClient {
         final SslContext sslCtx;
         if (SSL) {
             sslCtx = SslContextBuilder.forClient()
-                .trustManager(InsecureTrustManagerFactory.INSTANCE).build();
+                    .trustManager(InsecureTrustManagerFactory.INSTANCE).build();
         } else {
             sslCtx = null;
         }
@@ -54,27 +54,32 @@ public final class EchoClient {
             // 创建 Bootstrap 对象
             Bootstrap b = new Bootstrap();
             b.group(group)  // 设置使用的 EventLoopGroup
-             .channel(NioSocketChannel.class)    // 设置要被实例化的为 NioSocketChannel 类
-             .option(ChannelOption.TCP_NODELAY, true)   // 设置 NioSocketChannel 的可选项
-             .handler(new ChannelInitializer<SocketChannel>() {
-                 @Override
-                 public void initChannel(SocketChannel ch) throws Exception {
-                     ChannelPipeline p = ch.pipeline();
-                     if (sslCtx != null) {
-                         p.addLast(sslCtx.newHandler(ch.alloc(), HOST, PORT));
-                     }
-                     //p.addLast(new LoggingHandler(LogLevel.INFO));
-                     p.addLast(new EchoClientHandler());
-                 }
-             });
+                    .channel(NioSocketChannel.class)    // 设置要被实例化的为 NioSocketChannel 类
+                    .option(ChannelOption.TCP_NODELAY, true)   // 设置 NioSocketChannel 的可选项
+                    .handler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        public void initChannel(SocketChannel ch) throws Exception {
+                            ChannelPipeline p = ch.pipeline();
+                            if (sslCtx != null) {
+                                p.addLast(sslCtx.newHandler(ch.alloc(), HOST, PORT));
+                            }
+                            //p.addLast(new LoggingHandler(LogLevel.INFO));
+                            p.addLast(new EchoClientHandler());
+                        }
+                    });
 
             // Start the client.
             // 连接服务器，并同步等待成功，即启动客户端
             ChannelFuture f = b.connect(HOST, PORT).sync();
 
+            for (int i = 0; i < 100000; i++) {
+                f.channel().writeAndFlush("hello Service!" + Thread.currentThread().getName() + ":--->:" + i);
+            }
+
             // Wait until the connection is closed.
             // 监听客户端关闭，并阻塞等待
             f.channel().closeFuture().sync();
+
         } finally {
             // Shut down the event loop to terminate all threads.
             group.shutdownGracefully();
