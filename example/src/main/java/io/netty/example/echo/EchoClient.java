@@ -72,14 +72,9 @@ public final class EchoClient {
             // 连接服务器，并同步等待成功，即启动客户端
             ChannelFuture f = b.connect(HOST, PORT).sync();
 
-            for (int i = 0; i < 100000; i++) {
-                f.channel().writeAndFlush("hello Service!" + Thread.currentThread().getName() + ":--->:" + i);
-            }
-
             // Wait until the connection is closed.
             // 监听客户端关闭，并阻塞等待
             f.channel().closeFuture().sync();
-
         } finally {
             // Shut down the event loop to terminate all threads.
             group.shutdownGracefully();
